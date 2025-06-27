@@ -126,6 +126,8 @@ export const THEME_SIZES = {
  * const accentColor = getCSSVariable('accent-primary')
  */
 export function getCSSVariable(variableName: string): string {
+  // Prevent runtime errors in SSR or test environments where document may be undefined
+  if (typeof document === 'undefined' || !document.documentElement) return '';
   const varName = variableName.startsWith('--') ? variableName : `--${variableName}`;
   return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
 }
@@ -142,6 +144,8 @@ export function getCSSVariable(variableName: string): string {
  * setCSSVariable('accent-secondary', 'rgb(255, 0, 128)')
  */
 export function setCSSVariable(variableName: string, value: string): void {
+  // Prevent runtime errors in SSR or test environments where document may be undefined
+  if (typeof document === 'undefined' || !document.documentElement) return;
   const varName = variableName.startsWith('--') ? variableName : `--${variableName}`;
   document.documentElement.style.setProperty(varName, value);
 }
