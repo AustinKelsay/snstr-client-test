@@ -16,6 +16,10 @@ export interface SettingsPageProps {
  */
 export function SettingsPage({ className }: SettingsPageProps) {
   const [activeSection, setActiveSection] = useState('relays');
+  /**
+   * State for font size selection in appearance settings
+   */
+  const [fontSize, setFontSize] = useState('Medium');
 
   const settingsSections = [
     { id: 'relays', label: 'Relays', icon: '🌐' },
@@ -45,7 +49,7 @@ export function SettingsPage({ className }: SettingsPageProps) {
           {/* Settings Navigation */}
           <div className="lg:col-span-1">
             <div className="card">
-              <nav className="space-y-2">
+              <nav className="space-y-2" role="tablist">
                 {settingsSections.map((section) => (
                   <button
                     key={section.id}
@@ -55,6 +59,9 @@ export function SettingsPage({ className }: SettingsPageProps) {
                         ? 'bg-[var(--accent-primary)] text-[var(--text-inverse)]'
                         : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
                     }`}
+                    role="tab"
+                    aria-selected={activeSection === section.id}
+                    tabIndex={activeSection === section.id ? 0 : -1}
                   >
                     <span className="text-lg">{section.icon}</span>
                     <span className="font-medium">{section.label}</span>
@@ -142,10 +149,14 @@ export function SettingsPage({ className }: SettingsPageProps) {
                           Adjust text size for better readability
                         </p>
                       </div>
-                      <select className="bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded px-3 py-1 text-[var(--text-primary)]">
-                        <option>Small</option>
-                        <option selected>Medium</option>
-                        <option>Large</option>
+                      <select
+                        className="bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded px-3 py-1 text-[var(--text-primary)]"
+                        value={fontSize}
+                        onChange={e => setFontSize(e.target.value)}
+                      >
+                        <option value="Small">Small</option>
+                        <option value="Medium">Medium</option>
+                        <option value="Large">Large</option>
                       </select>
                     </div>
                   </div>
