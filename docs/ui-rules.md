@@ -102,7 +102,7 @@ xl: 1280px  /* Desktops */
 #### **Color Applications**
 - **Primary**: White (#ffffff) for active states
 - **Secondary**: Gray (#a0a0a0) for inactive states
-- **Accent**: Cyan (#00ffff) for interactive elements
+- **Accent**: Matrix Green (#00ff41) for interactive elements
 - **Success**: Green (#00ff00) for positive states
 - **Warning**: Orange (#ffaa00) for attention states
 - **Error**: Red (#ff3366) for problems
@@ -173,7 +173,7 @@ link: 16px font-medium     /* Clickable links */
 ### Content Guidelines
 - **Line Height**: 1.5x for body text, 1.2x for headings
 - **Paragraph Spacing**: 16px between paragraphs
-- **Link Styling**: Cyan color with subtle underline on hover
+- **Link Styling**: Matrix green color with subtle underline on hover
 - **Emphasis**: Bold for importance, monospace for technical terms
 
 ---

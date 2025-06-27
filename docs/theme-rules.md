@@ -42,17 +42,17 @@ This document defines the complete visual theme system for the snstr-client-test
 --text-quaternary: #404040;   /* Very subtle text, fine print */
 
 /* Interactive Text */
---text-link: #00ffff;         /* Links, clickable text elements */
---text-link-hover: #33ffff;   /* Hovered link states */
+--text-link: #00ff41;         /* Links, clickable text elements */
+--text-link-hover: #33ff66;   /* Hovered link states */
 --text-inverse: #000000;      /* Text on light backgrounds (rare) */
 ```
 
 #### **Accent Colors**
 ```css
-/* Primary Accents */
---accent-primary: #00ffff;    /* Primary interactive elements, focus states */
---accent-secondary: #0099ff;  /* Secondary actions, less prominent interactions */
---accent-tertiary: #0066cc;   /* Subtle accents, background highlights */
+/* Primary Accents - Matrix Green Theme */
+--accent-primary: #00ff41;    /* Primary interactive elements, focus states */
+--accent-secondary: #00cc33;  /* Secondary actions, less prominent interactions */
+--accent-tertiary: #009922;   /* Subtle accents, background highlights */
 
 /* Semantic Colors */
 --success: #00ff00;           /* Success states, connected relays, confirmations */
@@ -73,7 +73,7 @@ This document defines the complete visual theme system for the snstr-client-test
 /* Border Colors */
 --border-primary: #2a2a2a;    /* Main borders, card outlines */
 --border-secondary: #404040;  /* Subtle dividers, section separations */
---border-accent: #00ffff;     /* Focus rings, active states */
+--border-accent: #00ff41;     /* Focus rings, active states */
 --border-error: #ff3366;      /* Error borders, validation failures */
 --border-success: #00ff00;    /* Success borders, confirmations */
 
@@ -92,8 +92,8 @@ This document defines the complete visual theme system for the snstr-client-test
 --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.6);         /* Maximum elevation */
 
 /* Glow Effects */
---glow-cyan: 0 0 10px rgba(0, 255, 255, 0.3);        /* Cyan accent glow */
---glow-green: 0 0 10px rgba(0, 255, 0, 0.3);         /* Success glow */
+--glow-green: 0 0 10px rgba(0, 255, 65, 0.3);        /* Matrix green accent glow */
+--glow-success: 0 0 10px rgba(0, 255, 0, 0.3);       /* Success glow */
 --glow-orange: 0 0 10px rgba(255, 170, 0, 0.3);      /* Warning glow */
 --glow-red: 0 0 10px rgba(255, 51, 102, 0.3);        /* Error glow */
 ```
@@ -229,13 +229,13 @@ This document defines the complete visual theme system for the snstr-client-test
   background: var(--accent-primary);
   color: var(--text-inverse);
   border: var(--border-thin) solid var(--accent-primary);
-  box-shadow: var(--glow-cyan);
+  box-shadow: var(--glow-green);
   transition: all 0.2s ease-in-out;
 }
 
 .btn-primary:hover {
   background: var(--accent-secondary);
-  box-shadow: var(--glow-cyan), var(--shadow-md);
+  box-shadow: var(--glow-green), var(--shadow-md);
   transform: translateY(-1px);
 }
 
@@ -250,7 +250,7 @@ This document defines the complete visual theme system for the snstr-client-test
 .btn-secondary:hover {
   background: var(--accent-primary);
   color: var(--text-inverse);
-  box-shadow: var(--glow-cyan);
+  box-shadow: var(--glow-green);
 }
 
 /* Ghost Button */
@@ -327,7 +327,7 @@ This document defines the complete visual theme system for the snstr-client-test
 .input:focus {
   outline: none;
   border-color: var(--border-accent);
-  box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.1);
+  box-shadow: 0 0 0 3px rgba(0, 255, 65, 0.1);
   background: var(--bg-secondary);
 }
 
@@ -352,7 +352,7 @@ This document defines the complete visual theme system for the snstr-client-test
 .textarea:focus {
   outline: none;
   border-color: var(--border-accent);
-  box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.1);
+  box-shadow: 0 0 0 3px rgba(0, 255, 65, 0.1);
   background: var(--bg-secondary);
 }
 ```
@@ -380,8 +380,8 @@ This document defines the complete visual theme system for the snstr-client-test
 ```css
 /* Glow Animation */
 @keyframes glow {
-  0%, 100% { box-shadow: var(--glow-cyan); }
-  50% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.5); }
+  0%, 100% { box-shadow: var(--glow-green); }
+  50% { box-shadow: 0 0 20px rgba(0, 255, 65, 0.5); }
 }
 
 /* Pulse Animation */
@@ -500,7 +500,7 @@ This document defines the complete visual theme system for the snstr-client-test
 .theme-dark-enhanced {
   --bg-primary: #000000;
   --text-primary: #ffffff;
-  --accent-primary: #00ffff;
+  --accent-primary: #00ff41;
 }
 
 /* Softer dark mode (optional) */
@@ -508,7 +508,7 @@ This document defines the complete visual theme system for the snstr-client-test
   --bg-primary: #0d1117;
   --bg-secondary: #161b22;
   --text-primary: #f0f6fc;
-  --accent-primary: #58a6ff;
+  --accent-primary: #33ff66;
 }
 ```
 
@@ -542,7 +542,7 @@ module.exports = {
         'cyber-black': 'var(--bg-primary)',
         'cyber-dark': 'var(--bg-secondary)',
         'cyber-grey': 'var(--bg-tertiary)',
-        'cyber-cyan': 'var(--accent-primary)',
+        'cyber-green': 'var(--accent-primary)',
         'cyber-green': 'var(--success)',
         'cyber-orange': 'var(--warning)',
         'cyber-red': 'var(--error)',
@@ -595,4 +595,68 @@ module.exports = {
 }
 ```
 
-This theme system provides a comprehensive foundation for maintaining visual consistency throughout the application while supporting the dark cypherpunk aesthetic that aligns with the Nostr protocol's values of privacy, decentralization, and technical excellence. 
+---
+
+## Theme Utilities & Helpers
+
+### JavaScript Theme Utilities
+The theme system includes comprehensive utilities for programmatic access:
+
+```typescript
+// Theme utilities available in src/utils/theme.ts
+import { 
+  THEME_COLORS, 
+  getButtonClasses, 
+  getStatusColor, 
+  getCurrentTheme,
+  isThemeLoaded 
+} from '@/utils/theme';
+
+// Get button classes for consistent styling
+const buttonClasses = getButtonClasses('primary', 'lg');
+
+// Get status-appropriate colors
+const statusColor = getStatusColor('connected'); // Returns success green
+
+// Access theme colors programmatically
+const accentColor = THEME_COLORS.accent.primary;
+
+// Validate theme system is loaded
+if (isThemeLoaded()) {
+  console.log('Matrix green theme loaded successfully');
+}
+```
+
+### Pre-built Style Objects
+```typescript
+// Use pre-built styles for common components
+import { THEME_STYLES } from '@/utils/theme';
+
+// Status indicators with appropriate colors and effects
+<div style={THEME_STYLES.statusIndicator.connected} />
+<div style={THEME_STYLES.statusIndicator.connecting} />
+
+// Loading spinners with theme-appropriate styling  
+<div style={THEME_STYLES.loadingSpinner.base} />
+
+// Glow effects for enhanced visual feedback
+<div style={THEME_STYLES.glowEffects.green} />
+```
+
+### Runtime Theme Customization
+```typescript
+// Dynamic theme adjustments at runtime
+import { setCSSVariable, getCSSVariable } from '@/utils/theme';
+
+// Temporarily adjust accent color for special states
+setCSSVariable('--accent-primary', '#33ff66');
+
+// Read current theme values
+const currentAccent = getCSSVariable('--accent-primary');
+```
+
+---
+
+## Summary
+
+This theme system provides a comprehensive foundation for maintaining visual consistency throughout the application while supporting the **matrix green cypherpunk aesthetic** that aligns with the Nostr protocol's values of privacy, decentralization, and technical excellence. 
