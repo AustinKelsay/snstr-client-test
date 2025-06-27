@@ -7,6 +7,9 @@ import { useState } from 'react'
 import { Menu, X, Zap } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import { cn } from '@/utils/cn'
+import { useAppSelector } from '@/store'
+import { selectExtensionStatus } from '@/store/selectors/authSelectors'
+import { Link } from 'react-router-dom'
 
 interface HeaderProps {
   className?: string
@@ -14,6 +17,9 @@ interface HeaderProps {
 
 function Header({ className }: HeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  // Get extension status from Redux
+  const extensionStatus = useAppSelector(selectExtensionStatus)
 
   return (
     <div className={cn('border-b border-border bg-background/80 backdrop-blur-sm', className)}>
@@ -32,25 +38,38 @@ function Header({ className }: HeaderProps) {
 
           {/* Desktop navigation */}
           <nav className="hidden md:flex items-center gap-6">
-            <a href="#timeline" className="text-foreground hover:text-primary transition-colors">
+            <Link to="/timeline" className="text-foreground hover:text-primary transition-colors">
               Timeline
-            </a>
-            <a href="#profile" className="text-foreground hover:text-primary transition-colors">
+            </Link>
+            <Link to="/profile" className="text-foreground hover:text-primary transition-colors">
               Profile
-            </a>
-            <a href="#messages" className="text-foreground hover:text-primary transition-colors">
+            </Link>
+            <Link to="/messages" className="text-foreground hover:text-primary transition-colors">
               Messages
-            </a>
-            <a href="#settings" className="text-foreground hover:text-primary transition-colors">
+            </Link>
+            <Link to="/settings" className="text-foreground hover:text-primary transition-colors">
               Settings
-            </a>
+            </Link>
           </nav>
 
           {/* Connection status indicator */}
           <div className="hidden md:flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-muted animate-pulse" />
-              <span className="text-sm text-muted-foreground">Extension Detection</span>
+              {/* Extension detection indicator - dynamic */}
+              <div
+                className={
+                  extensionStatus.available
+                    ? 'w-3 h-3 rounded-full bg-green-500 animate-pulse'
+                    : 'w-3 h-3 rounded-full bg-muted'
+                }
+              />
+              <span className="text-sm text-muted-foreground">
+                {extensionStatus.available
+                  ? extensionStatus.hasBasicSupport
+                    ? 'Extension Ready'
+                    : 'Extension Detected (Limited)'
+                  : 'Extension Not Detected'}
+              </span>
             </div>
             <Button variant="outline" size="sm">
               Connect Wallet

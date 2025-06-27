@@ -56,34 +56,30 @@ export interface UserProfile {
   lud06?: string // LNURL
 }
 
-// Authentication state
-export interface AuthState {
-  isAuthenticated: boolean
-  user: UserProfile | null
-  publicKey: PublicKey | null
-  extensionType: ExtensionType | null
-  extensionConnected: boolean
-  isLoading: boolean
-  error: string | null
-}
-
-// Supported extension types
-export type ExtensionType = 'alby' | 'nos2x' | 'flamingo' | 'unknown'
-
-// Extension detection result
-export interface ExtensionDetection {
-  isAvailable: boolean
-  type: ExtensionType
-  capabilities: ExtensionCapabilities
-}
-
-// Extension capabilities
+// Extension capabilities based on NIP-07 standard
 export interface ExtensionCapabilities {
   getPublicKey: boolean
   signEvent: boolean
   getRelays: boolean
   nip04: boolean
   nip44: boolean
+}
+
+// Extension detection result - focused on capabilities, not brand
+export interface ExtensionDetection {
+  isAvailable: boolean
+  capabilities: ExtensionCapabilities
+}
+
+// Authentication state - removed extensionType, focus on capabilities
+export interface AuthState {
+  isAuthenticated: boolean
+  user: UserProfile | null
+  publicKey: PublicKey | null
+  extensionAvailable: boolean
+  extensionCapabilities: ExtensionCapabilities | null
+  isLoading: boolean
+  error: string | null
 }
 
 // Auth context interface
@@ -107,12 +103,12 @@ export enum AuthActionType {
   CLEAR_ERROR = 'CLEAR_ERROR',
 }
 
-// Auth actions
+// Auth actions - updated to use capabilities instead of extension type
 export type AuthAction =
   | { type: AuthActionType.SET_LOADING; payload: boolean }
   | { type: AuthActionType.SET_ERROR; payload: string | null }
   | { type: AuthActionType.SET_AUTHENTICATED; payload: boolean }
   | { type: AuthActionType.SET_USER; payload: UserProfile | null }
-  | { type: AuthActionType.SET_EXTENSION; payload: { type: ExtensionType; connected: boolean } }
+  | { type: AuthActionType.SET_EXTENSION; payload: { available: boolean; capabilities: ExtensionCapabilities } }
   | { type: AuthActionType.LOGOUT }
   | { type: AuthActionType.CLEAR_ERROR }

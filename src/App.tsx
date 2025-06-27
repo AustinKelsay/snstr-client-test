@@ -15,8 +15,7 @@ function App() {
   return (
     <Provider store={store}>
       <ErrorBoundary>
-        <div className="min-h-screen bg-background">
-          <PageLayout header={<Header />} maxWidth="full">
+        <PageLayout header={<Header />} maxWidth="full">
             <div className="container mx-auto px-4 py-8">
               {/* Welcome section */}
               <div className="text-center mb-12">
@@ -105,7 +104,6 @@ function App() {
               </div>
             </div>
           </PageLayout>
-        </div>
       </ErrorBoundary>
     </Provider>
   )

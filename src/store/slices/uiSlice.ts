@@ -105,15 +105,6 @@ export const uiSlice = createSlice({
         timestamp: Date.now(),
       }
       state.notifications.push(notification)
-
-      // Auto-remove after duration (default 5 seconds)
-      const duration = notification.duration || 5000
-      if (duration > 0) {
-        setTimeout(() => {
-          // This would normally be handled by middleware in a production app
-          // For now, we'll rely on manual cleanup
-        }, duration)
-      }
     },
     removeNotification: (state, action: PayloadAction<string>) => {
       state.notifications = state.notifications.filter(n => n.id !== action.payload)

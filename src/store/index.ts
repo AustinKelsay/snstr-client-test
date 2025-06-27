@@ -10,6 +10,9 @@ import { useDispatch, useSelector, type TypedUseSelectorHook } from 'react-redux
 import authSlice from './slices/authSlice'
 import uiSlice from './slices/uiSlice'
 
+// Import middleware
+import { notificationMiddleware } from './middleware'
+
 /**
  * Configure the Redux store with all slices and middleware
  */
@@ -24,7 +27,7 @@ export const store = configureStore({
         // Ignore these action types for serialization checks
         ignoredActions: ['persist/PERSIST', 'persist/REHYDRATE'],
       },
-    }),
+    }).concat(notificationMiddleware),
   devTools: process.env.NODE_ENV !== 'production',
 })
 
