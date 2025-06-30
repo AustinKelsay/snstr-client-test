@@ -1,232 +1,168 @@
 # snstr-client-test
 
-A modern, Twitter-like social media client built on the Nostr protocol. This project bridges traditional social media experiences with decentralized, censorship-resistant communication through an intuitive, familiar interface.
+A modern, Twitter-like Nostr client with a clean, intuitive interface. Built with React, TypeScript, and Tailwind CSS, featuring a cypherpunk aesthetic and seamless integration with NIP-07 browser extensions.
 
-## 🎯 Project Overview
+## 🚀 Features
 
-**snstr-client-test** is a web application that provides users with a Twitter-like social media experience while leveraging the power of the Nostr protocol. Built with modern web technologies and designed for mainstream adoption, it makes decentralized social networking accessible to users migrating from traditional platforms.
-
-### Key Features
-
-- **🔐 Secure Authentication**: NIP-07 browser extension integration (Alby, nos2x, Flamingo)
-- **📱 Responsive Design**: Mobile-first approach with desktop optimization
-- **⚡ Lightning Zaps**: Bitcoin micropayments via NIP-57 integration
-- **💬 Direct Messages**: End-to-end encrypted messaging (NIP-04/NIP-44)
-- **🔄 Real-time Updates**: Live timeline feeds with WebSocket connections
-- **🎨 Dark Theme**: Cypherpunk minimalism with content-first design
-- **📡 Relay Management**: Multi-relay support with connection monitoring
-- **🔍 Search & Discovery**: Find users, content, and trending topics
-
-### Target Audience
-
-- **Primary**: Twitter migrants seeking privacy and censorship resistance
-- **Secondary**: Existing Nostr users wanting better UX
-- **Tertiary**: Developers learning Nostr client development
+- **Modern UI**: Clean, responsive design with a cypherpunk dark theme
+- **NIP-07 Integration**: Seamless connection with popular Nostr browser extensions
+- **Real-time Updates**: Live feed updates and notifications
+- **Lightning Payments**: Send and receive Bitcoin micropayments via Lightning Network
+- **Encrypted Messaging**: End-to-end encrypted direct messages
+- **Multi-relay Support**: Connect to multiple Nostr relays for redundancy
+- **Mobile Responsive**: Optimized for both desktop and mobile devices
 
 ## 🛠️ Tech Stack
 
-### Core Technologies
-- **Frontend**: React 18 + TypeScript
-- **Build Tool**: Vite
-- **UI Framework**: shadcn/ui + Tailwind CSS
-- **Icons**: Lucide React
-- **Nostr Library**: snstr (local)
-
-### State & Data Management
+- **Frontend**: React 18 + TypeScript + Vite
+- **Styling**: Tailwind CSS + Custom CSS Variables
 - **State Management**: Redux Toolkit
-- **Form Handling**: React Hook Form
 - **Routing**: React Router v6
+- **Forms**: React Hook Form + Zod validation
+- **UI Components**: Custom components with Radix UI primitives
+- **Icons**: Lucide React
+- **Development**: ESLint + Prettier + TypeScript
 
-### Development Tools
-- **Package Manager**: npm
-- **Linting**: ESLint + Prettier
-- **Type Checking**: TypeScript strict mode
+## 📋 Prerequisites
 
-### Deployment & Performance
-- **Deployment**: Vercel
-- **Bundle Analysis**: Rollup Bundle Analyzer
-- **Performance**: Web Vitals + Lighthouse
+- Node.js 18+ (recommended: use nvm or volta)
+- npm 8+
+- A Nostr browser extension (Alby, nos2x, or Flamingo)
 
-## 🚀 Getting Started
+## 🔧 Installation
 
-### Prerequisites
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd snstr-client-test
+   ```
 
-- Node.js 18+ and npm
-- NIP-07 compatible browser extension (Alby, nos2x, or Flamingo)
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-### Installation
+3. **Start the development server**
+   ```bash
+   npm run dev
+   ```
+
+4. **Open your browser**
+   Navigate to `http://localhost:3000`
+
+## 🎨 Development
+
+### Available Scripts
+
+- `npm run dev` - Start the development server
+- `npm run build` - Build for production
+- `npm run lint` - Run ESLint
+- `npm run lint:fix` - Fix ESLint errors automatically
+- `npm run format` - Format code with Prettier
+- `npm run format:check` - Check if code is formatted correctly
+- `npm run type-check` - Run TypeScript type checking
+- `npm run preview` - Preview the production build
+
+### Project Structure
+
+```
+src/
+├── components/          # Reusable UI components
+│   ├── ui/             # Basic UI components (Button, Input, etc.)
+│   ├── common/         # Common components (ErrorBoundary, etc.)
+│   └── layout/         # Layout components (Header, Sidebar, etc.)
+├── features/           # Feature-specific components and logic
+│   └── auth/          # Authentication feature
+├── pages/             # Page components
+├── store/             # Redux store configuration
+│   ├── slices/        # Redux slices
+│   └── selectors/     # Memoized selectors
+├── types/             # TypeScript type definitions
+├── utils/             # Utility functions
+├── styles/            # Global styles and theme
+└── main.tsx           # Application entry point
+```
+
+### Code Style
+
+This project follows strict TypeScript and React best practices:
+
+- **TypeScript**: Strict mode enabled with comprehensive type checking
+- **React**: Functional components with hooks, no class components
+- **Styling**: Utility-first approach with Tailwind CSS
+- **State Management**: Redux Toolkit with proper TypeScript integration
+- **Code Organization**: Feature-based architecture with clear separation of concerns
+
+### Theme and Styling
+
+The application uses a cypherpunk-inspired dark theme with:
+
+- **Colors**: Dark backgrounds with bright green and cyan accents
+- **Typography**: Inter font for UI, JetBrains Mono for code
+- **Components**: Consistent design system with proper accessibility
+- **Responsive**: Mobile-first approach with responsive utilities
+
+## 🔗 Browser Extension Setup
+
+To use the application, you'll need a Nostr browser extension:
+
+### Recommended Extensions:
+
+1. **Alby** - Bitcoin Lightning wallet with Nostr support
+2. **nos2x** - Simple Nostr signer extension
+3. **Flamingo** - Advanced Nostr client extension
+
+### Installation:
+
+1. Install one of the extensions from your browser's extension store
+2. Set up your Nostr keys following the extension's instructions
+3. Return to snstr-client and click "Connect Extension"
+
+## 🚀 Production Build
+
+To build for production:
 
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd snstr-client-test
-
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
+npm run build
 ```
 
-### Environment Setup
-
-Create a `.env.local` file in the root directory:
-
-```env
-VITE_DEFAULT_RELAYS=wss://relay.primal.net,wss://relay.damus.io,wss://relay.snort.social
-VITE_APP_NAME=snstr-client-test
-```
-
-## 📁 Project Structure
-
-```
-snstr-client-test/
-├── docs/                    # Project documentation
-│   ├── phases/             # Development phase documents
-│   ├── project-overview.md # Project goals and scope
-│   ├── user-flow.md        # User journey mapping
-│   ├── tech-stack.md       # Technology decisions
-│   ├── project-rules.md    # Development standards
-│   ├── ui-rules.md         # Design guidelines
-│   └── theme-rules.md      # Visual theme specification
-├── public/                 # Static assets
-├── src/                    # Source code
-│   ├── components/         # Reusable UI components
-│   ├── pages/             # Page-level components
-│   ├── features/          # Feature-specific modules
-│   ├── store/             # Redux store configuration
-│   ├── hooks/             # Custom React hooks
-│   ├── utils/             # Utility functions
-│   ├── types/             # TypeScript type definitions
-│   └── styles/            # Global styles and theme
-└── tests/                 # Test files
-```
-
-## 🎨 Design Philosophy
-
-### Cypherpunk Minimalism
-- **Content-First**: Clean, distraction-free interface
-- **Technical Transparency**: Clear indication of decentralized features
-- **Dark Theme**: Pure black backgrounds with cyan accents
-- **Accessibility**: WCAG AA compliance with inclusive design
-
-### Design System
-- **Colors**: CSS variables for consistent theming
-- **Typography**: Inter + JetBrains Mono for modern, technical feel
-- **Spacing**: 4px grid system for consistent layout
-- **Icons**: Lucide React for unified iconography
-
-## 🏗️ Development Standards
-
-### AI-First Codebase Principles
-
-- **File Size Limit**: Maximum 500 lines per file for AI compatibility
-- **Modular Architecture**: Self-contained components with clear interfaces
-- **Comprehensive Documentation**: JSDoc comments for all functions
-- **Type Safety**: Full TypeScript coverage with strict mode
-
-### Code Organization
-
-```typescript
-/**
- * @fileoverview Brief description of file purpose
- * Component/utility description and usage examples
- */
-
-// 1. External library imports
-import React from 'react';
-
-// 2. Internal feature imports  
-import { useNostrAuth } from '@/features/auth';
-
-// 3. Component imports
-import { Button } from '@/components/ui';
-
-// 4. Types and utilities
-import type { User } from '@/types';
-```
-
-### Naming Conventions
-
-- **PascalCase**: React components, TypeScript interfaces
-- **camelCase**: Functions, variables, hooks
-- **kebab-case**: File names, CSS classes
-- **UPPER_SNAKE_CASE**: Constants, environment variables
-
-## 🧪 Testing & Quality
-
-### Testing Strategy
-- **Unit Tests**: Jest + React Testing Library
-- **Integration Tests**: Feature-level testing
-- **E2E Tests**: Playwright (future implementation)
-- **Type Safety**: TypeScript strict mode
-
-### Quality Standards
-- **Test Coverage**: >90% for critical paths
-- **Performance**: <2s page load, <3s time to interactive
-- **Accessibility**: WCAG AA compliance
-- **Bundle Size**: <300KB initial load
-
-## 🚀 Development Phases
-
-The project follows a structured 4-phase development approach:
-
-1. **Setup Phase** (Weeks 1-2): Foundation and basic functionality
-2. **MVP Phase** (Weeks 3-5): Core social media features
-3. **Enhanced Phase** (Weeks 6-8): Advanced features and optimization
-4. **Production Phase** (Weeks 9-10): Polish, testing, and launch
-
-See the [development phases documentation](./docs/phases/) for detailed roadmaps.
+The build artifacts will be stored in the `dist/` directory.
 
 ## 🤝 Contributing
 
-### Development Workflow
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-1. **Follow Project Rules**: Adhere to coding standards in `docs/project-rules.md`
-2. **Documentation First**: Update relevant docs for new features
-3. **Type Safety**: Maintain full TypeScript coverage
-4. **Testing**: Include tests for new functionality
-5. **Performance**: Consider impact on bundle size and runtime performance
+### Development Guidelines
 
-### Git Conventions
+- Follow the existing code style and patterns
+- Add TypeScript types for all new code
+- Write meaningful commit messages
+- Test your changes thoroughly
+- Update documentation as needed
 
-```bash
-feat: add new post composer component
-fix: resolve relay connection timeout issue
-docs: update authentication flow documentation
-style: apply consistent button styling
-refactor: extract post utilities to separate module
-```
+## 📝 License
 
-### Code Review Checklist
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-- [ ] File adheres to 500-line limit
-- [ ] All functions have JSDoc comments
-- [ ] TypeScript interfaces properly defined
-- [ ] Components properly memoized
-- [ ] Error handling implemented
-- [ ] Performance considerations addressed
+## 🙏 Acknowledgments
 
-## 📖 Documentation
+- [Nostr Protocol](https://github.com/nostr-protocol/nostr) - The decentralized social network protocol
+- [Tailwind CSS](https://tailwindcss.com/) - For the utility-first CSS framework
+- [Lucide](https://lucide.dev/) - For the beautiful icons
+- [Radix UI](https://radix-ui.com/) - For accessible component primitives
 
-- **[Project Overview](./docs/project-overview.md)**: Goals, scope, and target audience
-- **[User Flow](./docs/user-flow.md)**: Complete user journey mapping
-- **[Tech Stack](./docs/tech-stack.md)**: Technology decisions and best practices
-- **[Project Rules](./docs/project-rules.md)**: Development standards and conventions
-- **[UI Rules](./docs/ui-rules.md)**: Design principles and guidelines
-- **[Theme Rules](./docs/theme-rules.md)**: Visual theme specification
+## 📞 Support
 
-## 🔗 Key Resources
+If you encounter any issues or have questions:
 
-- **Nostr Protocol**: [nostr.com](https://nostr.com)
-- **NIP Specifications**: [github.com/nostr-protocol/nips](https://github.com/nostr-protocol/nips)
-- **Browser Extensions**: [Alby](https://getalby.com), [nos2x](https://github.com/fiatjaf/nos2x), [Flamingo](https://flamingo.me)
-- **Default Relays**: relay.primal.net, relay.damus.io, relay.snort.social
-
-## 📄 License
-
-This project is open source and available under the [MIT License](LICENSE).
+1. Check the [Issues](https://github.com/your-username/snstr-client-test/issues) page
+2. Create a new issue with detailed information
+3. Join our community discussions
 
 ---
 
-**Building the future of decentralized social media, one commit at a time.** 🚀
+Made with ⚡ by the snstr-client team
