@@ -1,92 +1,159 @@
 /**
  * @fileoverview Timeline page component for displaying user timeline
- * Shows chronological posts with proper cypherpunk styling
+ * Shows chronological posts with feed switching between Discover and Following
+ * Features infinite scroll, real-time updates, and post interactions
  */
 
-
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { useState, useEffect, useCallback } from 'react'
+import { useAppDispatch, useAppSelector } from '@/store'
+import { loadTimelinePosts, loadFollowingPosts } from '@/store/slices/postsSlice'
+import { selectFeedPosts, selectIsFeedLoading, selectFeedError, selectHasMoreFeed } from '@/store/selectors'
+import { PostList } from '@/components/post'
+import type { FeedType, Post, PublicKey } from '@/types'
 
 export interface TimelinePageProps {
-  className?: string;
+  className?: string
 }
 
 /**
  * Timeline page component displays the main feed of posts
- * Features infinite scroll, real-time updates, and post interactions
+ * Features feed switching, infinite scroll, real-time updates, and post interactions
  */
 export function TimelinePage({ className }: TimelinePageProps) {
+  const dispatch = useAppDispatch()
+  const [feedType, setFeedType] = useState<FeedType>('discover')
+
+  // Selectors
+  const posts = useAppSelector((state) => selectFeedPosts(state, feedType))
+  const isLoading = useAppSelector((state) => selectIsFeedLoading(state, feedType))
+  const error = useAppSelector((state) => selectFeedError(state, feedType))
+  const hasMore = useAppSelector((state) => selectHasMoreFeed(state, feedType))
+  const { isAuthenticated } = useAppSelector((state) => state.auth)
+
+  // Load initial posts
+  useEffect(() => {
+    if (feedType === 'discover') {
+      dispatch(loadTimelinePosts({ limit: 20 }))
+    } else if (feedType === 'following' && isAuthenticated) {
+      // TODO: Get user's follows and load their posts
+      dispatch(loadFollowingPosts({ limit: 20, authors: [] }))
+    }
+  }, [dispatch, feedType, isAuthenticated])
+
+  // Handle load more
+  const handleLoadMore = useCallback(() => {
+    if (feedType === 'discover') {
+      const lastPost = posts[posts.length - 1]
+      dispatch(loadTimelinePosts({ 
+        limit: 20,
+        until: lastPost?.created_at 
+      }))
+    } else if (feedType === 'following') {
+      const lastPost = posts[posts.length - 1]
+      dispatch(loadFollowingPosts({ 
+        limit: 20,
+        until: lastPost?.created_at,
+        authors: [] // TODO: Get user's follows
+      }))
+    }
+  }, [dispatch, feedType, posts])
+
+  // Handle post interactions
+  const handlePostClick = useCallback((post: Post) => {
+    // TODO: Navigate to post detail page
+    console.log('Post clicked:', post.id)
+  }, [])
+
+  const handleLike = useCallback((postId: string) => {
+    // TODO: Implement like functionality
+    console.log('Like post:', postId)
+  }, [])
+
+  const handleZap = useCallback((postId: string) => {
+    // TODO: Implement zap functionality  
+    console.log('Zap post:', postId)
+  }, [])
+
+  const handleReply = useCallback((post: Post) => {
+    // TODO: Implement reply functionality
+    console.log('Reply to post:', post.id)
+  }, [])
+
+  const handleRepost = useCallback((postId: string) => {
+    // TODO: Implement repost functionality
+    console.log('Repost:', postId)
+  }, [])
+
+  const handleAuthorClick = useCallback((pubkey: PublicKey) => {
+    // TODO: Navigate to user profile
+    console.log('Author clicked:', pubkey)
+  }, [])
+
   return (
-    <div className={`min-h-screen ${className || ''}`}>
+    <div className={`min-h-screen bg-black ${className || ''}`}>
       {/* Page Header */}
-      <div className="border-b border-[var(--border-primary)] bg-[var(--bg-secondary)] sticky top-0 z-10">
-        <div className="container-padding">
+      <div className="border-b border-gray-800 bg-black/95 sticky top-0 z-10 backdrop-blur">
+        <div className="max-w-2xl mx-auto px-4">
           <div className="py-4">
-            <h1 className="text-2xl font-bold text-[var(--text-primary)]">
-              Timeline
-            </h1>
-            <p className="text-sm text-[var(--text-secondary)] mt-1">
-              Your decentralized social feed
-            </p>
+            <h1 className="text-2xl font-bold text-white mb-4">Timeline</h1>
+            
+            {/* Feed Tabs */}
+            <div className="flex space-x-1 bg-gray-900 rounded-lg p-1">
+              <button
+                onClick={() => setFeedType('discover')}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                  feedType === 'discover'
+                    ? 'bg-accent-primary text-black'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Discover
+              </button>
+              {isAuthenticated && (
+                <button
+                  onClick={() => setFeedType('following')}
+                  className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                    feedType === 'following'
+                      ? 'bg-accent-primary text-black'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Following
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Timeline Content */}
-      <div className="container-padding py-6">
-        {/* Empty State - Placeholder */}
-        <div className="text-center py-16">
-          <div className="text-6xl mb-4 text-[var(--text-tertiary)]">
-            📱
-          </div>
-          <h2 className="text-xl font-semibold text-[var(--text-primary)] mb-2">
-            Your Timeline Awaits
-          </h2>
-          <p className="text-[var(--text-secondary)] mb-6 max-w-md mx-auto">
-            Connect your Nostr extension to see posts from your network.
-            Once connected, your timeline will populate with real-time updates.
-          </p>
-          
-          {/* Connection Status */}
-          <div className="card max-w-md mx-auto mb-6">
-            <div className="flex items-center justify-between">
-              <span className="text-[var(--text-secondary)]">Extension Status</span>
-              <div className="flex items-center gap-2">
-                <LoadingSpinner size="sm" />
-                <span className="text-sm text-[var(--warning)]">Detecting...</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <button className="btn-base btn-primary">
-              Connect Extension
-            </button>
-            <button className="btn-base btn-secondary">
-              Learn About Nostr
-            </button>
-          </div>
-        </div>
-
-        {/* Future Timeline Posts Will Render Here */}
-        <div className="hidden">
-          {/* Skeleton posts for loading state */}
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="card mb-4 animate-pulse">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 bg-[var(--bg-tertiary)] rounded-full"></div>
-                <div className="flex-1">
-                  <div className="h-4 bg-[var(--bg-tertiary)] rounded w-1/4 mb-2"></div>
-                  <div className="h-4 bg-[var(--bg-tertiary)] rounded w-3/4 mb-2"></div>
-                  <div className="h-4 bg-[var(--bg-tertiary)] rounded w-1/2"></div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+      <div className="max-w-2xl mx-auto">
+        <PostList
+          posts={posts}
+          isLoading={isLoading}
+          error={error}
+          hasMore={hasMore}
+          onLoadMore={handleLoadMore}
+          onPostClick={handlePostClick}
+          onLike={handleLike}
+          onZap={handleZap}
+          onReply={handleReply}
+          onRepost={handleRepost}
+          onAuthorClick={handleAuthorClick}
+          emptyMessage={
+            feedType === 'discover' 
+              ? "No posts found" 
+              : "Your following feed is empty"
+          }
+          emptyDescription={
+            feedType === 'discover'
+              ? "Check back later for new posts"
+              : "Follow some users to see their posts here"
+          }
+        />
       </div>
     </div>
-  );
+  )
 }
 
 export default TimelinePage; 

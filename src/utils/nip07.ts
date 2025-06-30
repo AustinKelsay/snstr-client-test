@@ -1,11 +1,14 @@
 /**
  * NIP-07 browser extension detection and interaction utilities
+ * Uses SNSTR library's NIP-07 implementation for reliable extension interaction
  * Follows NIP-07 standard for capability-based detection, not brand detection
- * 
- * According to NIP-07 specification, extensions should implement a standard
- * window.nostr interface. We detect capabilities, not extension brands.
  */
 
+import {
+  hasNip07Support as snstrHasNip07Support,
+  getNip07PublicKey,
+  signEventWithNip07,
+} from 'snstr'
 import type {
   NostrExtension,
   ExtensionDetection,
@@ -110,33 +113,23 @@ async function testExtensionCapabilities(
 
 /**
  * Simple check for NIP-07 extension availability
- * This is the basic check recommended by NIP-07 spec
+ * Uses SNSTR's reliable detection
  * 
- * @returns boolean - True if window.nostr exists
+ * @returns boolean - True if NIP-07 extension is available
  */
 export function hasNip07Support(): boolean {
-  return typeof window !== 'undefined' && !!window.nostr
+  return snstrHasNip07Support()
 }
 
 /**
  * Safely gets the public key from the extension
- * Follows NIP-07 standard interface
+ * Uses SNSTR's getNip07PublicKey for reliable key retrieval
  * 
  * @returns Promise<PublicKey | null> - The public key or null if failed
  */
 export async function getPublicKey(): Promise<PublicKey | null> {
   try {
-    if (!window.nostr?.getPublicKey) {
-      throw new Error('Extension does not support getPublicKey')
-    }
-
-    const pubkey = await window.nostr.getPublicKey()
-
-    // Validate public key format
-    if (!isValidPublicKey(pubkey)) {
-      throw new Error('Invalid public key format')
-    }
-
+    const pubkey = await getNip07PublicKey()
     return pubkey
   } catch (error) {
     console.error('Failed to get public key:', error)
@@ -146,30 +139,20 @@ export async function getPublicKey(): Promise<PublicKey | null> {
 
 /**
  * Safely signs an event using the extension
- * Follows NIP-07 standard interface
+ * Uses SNSTR's signEventWithNip07 for reliable event signing
  * 
  * @param event - The unsigned event to sign
  * @returns Promise<SignedEvent | null> - The signed event or null if failed
  */
 export async function signEvent(event: UnsignedEvent): Promise<SignedEvent | null> {
   try {
-    if (!window.nostr?.signEvent) {
-      throw new Error('Extension does not support signEvent')
-    }
-
     // Ensure event has required fields
     if (!isValidUnsignedEvent(event)) {
       throw new Error('Invalid event format')
     }
 
-    const signedEvent = await window.nostr.signEvent(event)
-
-    // Validate signed event
-    if (!isValidSignedEvent(signedEvent)) {
-      throw new Error('Invalid signed event format')
-    }
-
-    return signedEvent
+    const signedEvent = await signEventWithNip07(event)
+    return signedEvent as SignedEvent
   } catch (error) {
     console.error('Failed to sign event:', error)
     return null
@@ -283,14 +266,7 @@ export async function decryptNip44(pubkey: PublicKey, ciphertext: string): Promi
   }
 }
 
-/**
- * Validates if a string is a valid public key
- * @param pubkey - The public key to validate
- * @returns boolean - True if valid
- */
-function isValidPublicKey(pubkey: string): boolean {
-  return typeof pubkey === 'string' && pubkey.length === 64 && /^[0-9a-f]{64}$/i.test(pubkey)
-}
+
 
 /**
  * Validates if an object is a valid unsigned event
@@ -309,23 +285,7 @@ function isValidUnsignedEvent(event: unknown): event is UnsignedEvent {
   )
 }
 
-/**
- * Validates if an object is a valid signed event
- * @param event - The event to validate
- * @returns boolean - True if valid
- */
-function isValidSignedEvent(event: unknown): event is SignedEvent {
-  return (
-    event !== null &&
-    typeof event === 'object' &&
-    event !== undefined &&
-    isValidUnsignedEvent(event) &&
-    typeof (event as SignedEvent).id === 'string' &&
-    typeof (event as SignedEvent).pubkey === 'string' &&
-    typeof (event as SignedEvent).sig === 'string' &&
-    isValidPublicKey((event as SignedEvent).pubkey)
-  )
-}
+
 
 /**
  * Waits for a NIP-07 extension to become available

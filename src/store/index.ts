@@ -9,6 +9,7 @@ import { useDispatch, useSelector, type TypedUseSelectorHook } from 'react-redux
 // Import slices
 import authSlice from './slices/authSlice'
 import uiSlice from './slices/uiSlice'
+import postsSlice from './slices/postsSlice'
 
 // Import middleware
 import { notificationMiddleware } from './middleware'
@@ -20,6 +21,7 @@ export const store = configureStore({
   reducer: {
     auth: authSlice,
     ui: uiSlice,
+    posts: postsSlice,
   },
   middleware: getDefaultMiddleware =>
     getDefaultMiddleware({
