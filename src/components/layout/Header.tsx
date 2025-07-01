@@ -5,10 +5,9 @@
  */
 
 import { useState } from 'react'
-import { Menu, X, Zap } from 'lucide-react'
+import { Menu, X, Zap, LogOut } from 'lucide-react'
 import { cn } from '@/utils/cn'
-import { useAppSelector } from '@/store'
-import { selectExtensionStatus } from '@/store/selectors/authSelectors'
+import { useAuth } from '@/features/auth'
 import { Link } from 'react-router-dom'
 
 interface HeaderProps {
@@ -18,8 +17,33 @@ interface HeaderProps {
 function Header({ className }: HeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
-  // Get extension status from Redux
-  const extensionStatus = useAppSelector(selectExtensionStatus)
+  // Get auth state and actions
+  const { 
+    isAuthenticated,
+    user,
+    extensionStatus,
+    isLoading,
+    error,
+    login,
+    logout,
+    canAuthenticate,
+    clearError
+  } = useAuth()
+
+  // Handle connect wallet click
+  const handleConnectWallet = async () => {
+    try {
+      if (error) clearError()
+      await login()
+    } catch (err) {
+      console.error('Login failed:', err)
+    }
+  }
+
+  // Handle logout click
+  const handleLogout = () => {
+    logout()
+  }
 
   return (
     <div 
@@ -77,7 +101,7 @@ function Header({ className }: HeaderProps) {
             </Link>
           </nav>
 
-          {/* Connection status indicator */}
+          {/* Connection status and auth */}
           <div className="hidden md:flex items-center gap-4">
             <div className="flex items-center gap-2">
               {/* Extension detection indicator - dynamic */}
@@ -97,16 +121,53 @@ function Header({ className }: HeaderProps) {
                 className="text-sm"
                 style={{ color: 'var(--text-secondary)' }}
               >
-                {extensionStatus.available
-                  ? extensionStatus.hasBasicSupport
-                    ? 'Extension Ready'
-                    : 'Extension Detected (Limited)'
-                  : 'Extension Not Detected'}
+                {isAuthenticated
+                  ? `Connected: ${user?.name || 'User'}`
+                  : extensionStatus.available
+                    ? extensionStatus.hasBasicSupport
+                      ? 'Extension Ready'
+                      : 'Extension Detected (Limited)'
+                    : 'Extension Not Detected'}
               </span>
             </div>
-            <button className="btn-base btn-secondary btn-sm">
-              Connect Wallet
-            </button>
+            
+            {/* Auth button */}
+            {isAuthenticated ? (
+              <button 
+                onClick={handleLogout}
+                className="btn-base btn-secondary btn-sm flex items-center gap-2"
+                disabled={isLoading}
+              >
+                <LogOut className="w-4 h-4" />
+                Logout
+              </button>
+            ) : (
+              <button 
+                onClick={handleConnectWallet}
+                className="btn-base btn-secondary btn-sm"
+                disabled={isLoading || !canAuthenticate}
+                title={
+                  !extensionStatus.available 
+                    ? 'Please install a Nostr extension (Alby, nos2x, Flamingo)'
+                    : !extensionStatus.hasBasicSupport
+                    ? 'Extension does not support required features'
+                    : 'Connect your Nostr extension'
+                }
+              >
+                {isLoading ? 'Connecting...' : 'Connect Wallet'}
+              </button>
+            )}
+            
+            {/* Error display */}
+            {error && (
+              <div 
+                className="text-xs max-w-xs truncate"
+                style={{ color: 'var(--error)' }}
+                title={error}
+              >
+                {error}
+              </div>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -168,19 +229,59 @@ function Header({ className }: HeaderProps) {
               >
                 <div className="flex items-center gap-2 mb-3">
                   <div 
-                    className="w-3 h-3 rounded-full animate-pulse"
-                    style={{ backgroundColor: 'var(--text-tertiary)' }}
+                    className={
+                      extensionStatus.available
+                        ? 'w-3 h-3 rounded-full animate-pulse'
+                        : 'w-3 h-3 rounded-full'
+                    }
+                    style={{
+                      backgroundColor: extensionStatus.available 
+                        ? 'var(--accent-primary)' 
+                        : 'var(--text-tertiary)'
+                    }}
                   />
                   <span 
                     className="text-sm"
                     style={{ color: 'var(--text-secondary)' }}
                   >
-                    Extension Detection
+                    {isAuthenticated
+                      ? `Connected: ${user?.name || 'User'}`
+                      : 'Extension Detection'}
                   </span>
                 </div>
-                <button className="btn-base btn-secondary btn-sm w-full">
-                  Connect Wallet
-                </button>
+                
+                {/* Mobile auth button */}
+                {isAuthenticated ? (
+                  <button 
+                    onClick={handleLogout}
+                    className="btn-base btn-secondary btn-sm w-full flex items-center justify-center gap-2"
+                    disabled={isLoading}
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Logout
+                  </button>
+                ) : (
+                  <button 
+                    onClick={handleConnectWallet}
+                    className="btn-base btn-secondary btn-sm w-full"
+                    disabled={isLoading || !canAuthenticate}
+                  >
+                    {isLoading ? 'Connecting...' : 'Connect Wallet'}
+                  </button>
+                )}
+                
+                {/* Mobile error display */}
+                {error && (
+                  <div 
+                    className="text-xs mt-2 p-2 rounded bg-opacity-10"
+                    style={{ 
+                      color: 'var(--error)',
+                      backgroundColor: 'var(--error)'
+                    }}
+                  >
+                    {error}
+                  </div>
+                )}
               </div>
             </nav>
           </div>

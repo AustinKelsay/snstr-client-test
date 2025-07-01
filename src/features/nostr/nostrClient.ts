@@ -5,12 +5,8 @@
  */
 
 // Import from SNSTR library
-import * as SNSTR from 'snstr'
-const { Nostr } = SNSTR
-type NostrEvent = SNSTR.NostrEvent
-type Filter = SNSTR.Filter
-const RelayEvent = SNSTR.RelayEvent
-type RelayEventType = keyof typeof RelayEvent
+import { Nostr, RelayEvent, type NostrEvent, type Filter } from 'snstr'
+type RelayEventType = RelayEvent
 import type { PublicKey, PrivateKey, RelayUrl } from '@/types'
 
 // Default relays for the application
@@ -217,7 +213,7 @@ export class NostrClient {
   /**
    * Notify relay event handlers
    */
-  private notifyRelayEventHandlers(event: RelayEvent, relayUrl: RelayUrl): void {
+  private notifyRelayEventHandlers(event: RelayEventType, relayUrl: RelayUrl): void {
     const handlers = this.relayEventHandlers.get(event) || []
     handlers.forEach(handler => {
       try {
@@ -248,7 +244,7 @@ export class NostrClient {
     console.log('🚀 Connecting to Nostr relays...')
     
     // Mark all relays as connecting
-    this.relayStatuses.forEach((status, relayUrl) => {
+    this.relayStatuses.forEach((_status, relayUrl) => {
       this.updateRelayStatus(relayUrl, { connecting: true })
     })
 
@@ -280,7 +276,7 @@ export class NostrClient {
     this.subscriptions.clear()
     
     try {
-      await this.client.disconnectFromRelays()
+      this.client.disconnectFromRelays()
       console.log('✅ Disconnected from all relays')
     } catch (error) {
       console.error('❌ Error disconnecting from relays:', error)
@@ -450,7 +446,7 @@ export class NostrClient {
   /**
    * Register relay event handler
    */
-  onRelayEvent(event: RelayEvent, handler: RelayEventHandler): void {
+  onRelayEvent(event: RelayEventType, handler: RelayEventHandler): void {
     const handlers = this.relayEventHandlers.get(event) || []
     handlers.push(handler)
     this.relayEventHandlers.set(event, handlers)
@@ -481,7 +477,7 @@ export class NostrClient {
    * Generate unique subscription ID
    */
   private generateSubscriptionId(): string {
-    return `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    return `sub_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
   }
 
   /**

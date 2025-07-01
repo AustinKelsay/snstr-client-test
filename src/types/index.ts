@@ -106,6 +106,23 @@ export interface LoadPostsOptions {
 
 export type FeedType = 'discover' | 'following'
 
+// NIP-07 window interface
+export interface NostrExtension {
+  getPublicKey(): Promise<string>
+  signEvent(event: Partial<NostrEvent>): Promise<NostrEvent>
+  getRelays?(): Promise<Record<string, { read: boolean; write: boolean }>>
+  nip04?: {
+    encrypt(pubkey: string, plaintext: string): Promise<string>
+    decrypt(pubkey: string, ciphertext: string): Promise<string>
+  }
+}
+
+declare global {
+  interface Window {
+    nostr?: NostrExtension
+  }
+}
+
 // Export re-usable utility types
 export type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>
 export type RequiredFields<T, K extends keyof T> = T & Required<Pick<T, K>>
