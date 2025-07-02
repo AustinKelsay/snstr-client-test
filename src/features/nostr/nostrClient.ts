@@ -27,6 +27,13 @@ const CONNECTION_CONFIG = {
   eoseTimeout: 10000, // 10 seconds for end-of-stored-events
 }
 
+// Subscription batching configuration
+const SUBSCRIPTION_CONFIG = {
+  batchSize: 50, // Maximum pubkeys per subscription
+  debounceDelay: 500, // Milliseconds to wait before creating subscription
+  maxConcurrent: 10, // Maximum concurrent subscriptions
+}
+
 /**
  * Event handler callback types
  */
@@ -195,20 +202,7 @@ export class NostrClient {
     this.reconnectTimers.set(relayUrl, timer)
   }
 
-  /**
-   * Cache an event
-   */
-  private cacheEvent(event: NostrEvent): void {
-    this.eventCache.set(event.id, event)
-    
-    // Limit cache size (keep last 10000 events)
-    if (this.eventCache.size > 10000) {
-      const firstKey = this.eventCache.keys().next().value
-      if (firstKey) {
-        this.eventCache.delete(firstKey)
-      }
-    }
-  }
+
 
   /**
    * Notify relay event handlers
@@ -371,6 +365,54 @@ export class NostrClient {
       this.eventHandlers.delete(subscriptionId)
       throw error
     }
+  }
+
+  /**
+   * Subscribe to profiles in batches to reduce concurrent subscriptions
+   * Batches large profile requests to avoid rate limiting
+   */
+  subscribeToBatchedProfiles(
+    pubkeys: PublicKey[],
+    onEvent: EventHandler,
+    options: SubscriptionOptions = {}
+  ): string[] {
+    if (pubkeys.length === 0) return []
+
+    const subscriptionIds: string[] = []
+    const batchSize = SUBSCRIPTION_CONFIG.batchSize
+
+    // Split pubkeys into batches
+    for (let i = 0; i < pubkeys.length; i += batchSize) {
+      const batch = pubkeys.slice(i, i + batchSize)
+      
+      // Create batched filter
+      const batchFilters: Filter[] = [{
+        kinds: [0], // Profile metadata
+        authors: batch
+      }]
+
+      const batchSubscriptionId = `batch_profiles_${Date.now()}_${i}`
+      
+      try {
+        const subscriptionId = this.subscribe(
+          batchFilters, 
+          onEvent,
+          {
+            ...options,
+            id: batchSubscriptionId,
+            autoClose: true, // Auto-close after getting profiles
+            eoseTimeout: 10000 // 10 second timeout for profiles
+          }
+        )
+        
+        subscriptionIds.push(subscriptionId)
+        console.log(`📡 Created batched profile subscription: ${subscriptionId} (${batch.length} profiles)`)
+      } catch (error) {
+        console.error(`Failed to create batch subscription for ${batch.length} profiles:`, error)
+      }
+    }
+
+    return subscriptionIds
   }
 
   /**

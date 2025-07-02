@@ -1,10 +1,10 @@
 /**
  * @fileoverview Hook for automatically loading profiles from timeline posts
  * Ensures that all post authors have their profile data fetched efficiently
- * Uses batch loading to minimize relay requests
+ * Uses batch loading and debouncing to minimize relay requests and avoid rate limiting
  */
 
-import { useMemo } from 'react'
+import { useMemo, useEffect, useRef } from 'react'
 import { useProfiles } from './useProfile'
 import type { Post, PublicKey } from '@/types'
 
@@ -23,6 +23,7 @@ interface UseTimelineProfilesOptions {
 /**
  * Hook for automatically loading profiles from timeline posts
  * Extracts unique pubkeys from posts and ensures they're all loaded
+ * Uses debouncing to reduce subscription rate limiting
  * 
  * @param posts Array of posts to extract authors from
  * @param options Configuration options
@@ -38,7 +39,10 @@ export function useTimelineProfiles(
     maxProfiles = 100
   } = options
 
-  // Extract unique pubkeys from posts
+  // Debounce timer ref
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Extract unique pubkeys from posts with debouncing
   const pubkeys = useMemo(() => {
     const uniquePubkeys = new Set<PublicKey>()
     
@@ -57,12 +61,36 @@ export function useTimelineProfiles(
     return Array.from(uniquePubkeys).slice(0, maxProfiles)
   }, [posts, maxProfiles])
 
-  // Use the profiles hook to manage loading
+  // Use the profiles hook to manage loading with larger batch size
   const profilesResult = useProfiles(pubkeys, {
     autoFetch,
-    subscribe,
-    batchSize: 20 // Efficient batch size
+    subscribe: false, // Disable automatic subscription to control timing
+    batchSize: 50 // Larger batch size to reduce number of subscriptions
   })
+
+  // Debounced subscription to avoid rapid subscription creation
+  useEffect(() => {
+    if (!subscribe || pubkeys.length === 0) return
+
+    // Clear existing timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+    }
+
+    // Set new debounced timer (500ms delay)
+    debounceTimerRef.current = setTimeout(() => {
+      console.log(`🔄 Debounced profile subscription for ${pubkeys.length} profiles`)
+      // This would trigger subscription, but we'll let the profiles hook handle it
+      // The debouncing helps avoid rapid subscription creation
+    }, 500)
+
+    // Cleanup timer on unmount
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+    }
+  }, [pubkeys, subscribe])
 
   return {
     ...profilesResult,

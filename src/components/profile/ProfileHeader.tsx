@@ -4,7 +4,7 @@
  * Supports both current user and other user profiles with appropriate action states
  */
 
-import React, { memo, useCallback } from 'react'
+import { memo, useCallback } from 'react'
 import { Settings, UserPlus, UserMinus, MessageCircle, MoreHorizontal, CheckCircle, Link as LinkIcon, Calendar } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import type { PublicKey } from '@/types'

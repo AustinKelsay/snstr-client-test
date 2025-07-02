@@ -321,34 +321,36 @@ export const fetchProfilesBatch = createAsyncThunk(
 
 /**
  * Subscribe to profile updates for a list of pubkeys
+ * Uses batched subscriptions to avoid rate limiting
  */
 export const subscribeToProfiles = createAsyncThunk(
   'profiles/subscribeToProfiles',
   async (pubkeys: PublicKey[], { dispatch }) => {
     try {
-      const subscriptionId = `profiles_${Date.now()}`
+      console.log(`📡 Subscribing to ${pubkeys.length} profiles using batched subscriptions`)
       
-      // Subscribe to kind 0 events for these pubkeys
-      nostrClient.subscribe([{
-        kinds: [0],
-        authors: pubkeys
-      }], (event) => {
-        // Handle real-time profile updates
-        const profile = convertEventToProfile(event)
-        if (profile) {
-          dispatch(updateProfileFromEvent({
-            pubkey: event.pubkey,
-            profile,
-            timestamp: event.created_at
-          }))
+      // Use batched profile subscriptions to avoid rate limiting
+      const subscriptionIds = nostrClient.subscribeToBatchedProfiles(
+        pubkeys,
+        (event) => {
+          // Handle real-time profile updates
+          const profile = convertEventToProfile(event)
+          if (profile) {
+            dispatch(updateProfileFromEvent({
+              pubkey: event.pubkey,
+              profile,
+              timestamp: event.created_at
+            }))
+          }
+        },
+        {
+          autoClose: false, // Keep subscriptions open for real-time updates
+          eoseTimeout: 15000 // Wait up to 15 seconds for stored events
         }
-      }, {
-        id: subscriptionId,
-        autoClose: false
-      })
+      )
 
       return {
-        subscriptionId,
+        subscriptionIds, // Return array of subscription IDs
         pubkeys,
         timestamp: Date.now() / 1000
       }
@@ -507,8 +509,11 @@ export const profilesSlice = createSlice({
 
       // Subscribe to profiles
       .addCase(subscribeToProfiles.fulfilled, (state, action) => {
-        const { subscriptionId, pubkeys } = action.payload
-        state.subscriptions[subscriptionId] = pubkeys
+        const { subscriptionIds, pubkeys } = action.payload
+        // Store all subscription IDs for this batch of pubkeys
+        subscriptionIds.forEach(subscriptionId => {
+          state.subscriptions[subscriptionId] = pubkeys
+        })
       })
   }
 })

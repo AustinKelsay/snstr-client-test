@@ -5,6 +5,7 @@
 
 import { useState } from 'react';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { RelayManagement } from '@/components/settings/RelayManagement';
 
 export interface SettingsPageProps {
   className?: string;
@@ -67,43 +68,7 @@ export function SettingsPage({ className }: SettingsPageProps) {
           {/* Settings Content */}
           <div className="lg:col-span-3">
             {activeSection === 'relays' && (
-              <div className="space-y-6">
-                <div className="card">
-                  <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">
-                    Relay Management
-                  </h3>
-                  <p className="text-[var(--text-secondary)] mb-6">
-                    Manage your Nostr relay connections. Relays are servers that store and distribute your posts.
-                  </p>
-                  
-                  {/* Relay List Placeholder */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 bg-[var(--bg-tertiary)] rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div className="w-2 h-2 rounded-full bg-[var(--error)]"></div>
-                        <span className="text-[var(--text-secondary)] font-mono text-sm">
-                          wss://relay.example.com
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <LoadingSpinner size="sm" />
-                        <span className="text-xs text-[var(--text-tertiary)]">Connecting...</span>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-center p-8 border-2 border-dashed border-[var(--border-primary)] rounded-lg">
-                      <div className="text-center">
-                        <p className="text-[var(--text-secondary)] mb-3">
-                          No relays configured
-                        </p>
-                        <button className="btn-base btn-secondary">
-                          Add Relay
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <RelayManagement />
             )}
 
             {activeSection === 'appearance' && (

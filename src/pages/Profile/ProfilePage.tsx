@@ -3,14 +3,18 @@
  * Shows user information, posts, and profile management
  */
 
-import { useState } from 'react'
-import { useAppSelector } from '@/store'
+import { useState, useEffect } from 'react'
+import { useAppSelector, useAppDispatch } from '@/store'
 import { selectIsAuthenticated, selectUser } from '@/store/selectors/authSelectors'
-import { ProfileHeader } from '@/components/profile'
+import { selectIsFollowing, selectIsUpdatingContacts } from '@/store/selectors/contactsSelectors'
+import { selectUserPosts } from '@/store/selectors/postsSelectors'
+import { followUser, unfollowUser } from '@/store/slices/contactsSlice'
+import { loadUserPosts } from '@/store/slices/postsSlice'
+import { ProfileHeader, ProfileEditModal } from '@/components/profile'
 import { PostList } from '@/components/post'
 import { useProfile } from '@/hooks/useProfile'
 import type { UserProfile } from '@/types/auth'
-import type { Post } from '@/types'
+import type { PublicKey } from '@/types'
 
 export interface ProfilePageProps {
   className?: string;
@@ -21,12 +25,18 @@ export interface ProfilePageProps {
  * Includes profile header, bio, follower stats, and user posts
  */
 export function ProfilePage({ className }: ProfilePageProps) {
+  const dispatch = useAppDispatch()
   const isAuthenticated = useAppSelector(selectIsAuthenticated)
   const user = useAppSelector(selectUser)
   
   const [activeTab, setActiveTab] = useState<'posts' | 'replies' | 'media' | 'likes'>('posts')
-  const [userPosts] = useState<Post[]>([]) // TODO: Load user posts from store
-  const [isLoadingPosts] = useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  
+  // Get user posts from store
+  const userPosts = useAppSelector(state => 
+    user?.pubkey ? selectUserPosts(state, user.pubkey) : []
+  )
+  const [isLoadingPosts, setIsLoadingPosts] = useState(false)
   const [postsError] = useState<string | null>(null)
 
   // Get real profile data
@@ -34,6 +44,14 @@ export function ProfilePage({ className }: ProfilePageProps) {
     autoFetch: true,
     subscribe: true
   })
+
+  // Get follow state for this profile
+  const isFollowing = useAppSelector(state => 
+    user?.pubkey && profile?.pubkey && profile.pubkey !== user.pubkey 
+      ? selectIsFollowing(state, profile.pubkey) 
+      : false
+  )
+  const isFollowLoading = useAppSelector(selectIsUpdatingContacts)
 
   // Use real profile data with fallbacks
   const displayProfile: UserProfile = {
@@ -51,8 +69,33 @@ export function ProfilePage({ className }: ProfilePageProps) {
 
   // Handle edit profile click
   const handleEditProfile = () => {
-    console.log('Edit profile clicked') // TODO: Implement profile editing
+    setIsEditModalOpen(true)
   }
+
+  // Handle profile edit success
+  const handleEditSuccess = (updatedProfile: UserProfile) => {
+    console.log('Profile updated successfully:', updatedProfile)
+    // Profile will be updated via Redux store automatically
+  }
+
+  // Handle follow user
+  const handleFollow = (pubkey: PublicKey) => {
+    dispatch(followUser({ pubkey }))
+  }
+
+  // Handle unfollow user
+  const handleUnfollow = (pubkey: PublicKey) => {
+    dispatch(unfollowUser(pubkey))
+  }
+
+  // Load user posts when component mounts or user changes
+  useEffect(() => {
+    if (user?.pubkey && isAuthenticated) {
+      setIsLoadingPosts(true)
+      dispatch(loadUserPosts({ pubkey: user.pubkey }))
+        .finally(() => setIsLoadingPosts(false))
+    }
+  }, [dispatch, user?.pubkey, isAuthenticated])
 
   if (!isAuthenticated) {
     return (
@@ -96,11 +139,15 @@ export function ProfilePage({ className }: ProfilePageProps) {
       {/* Profile Header */}
       <ProfileHeader
         profile={displayProfile}
-        isOwnProfile={true}
+        isOwnProfile={displayProfile.pubkey === user?.pubkey}
+        isFollowing={isFollowing}
+        isFollowLoading={isFollowLoading}
         followerCount={0} // TODO: Get from contacts slice
         followingCount={0} // TODO: Get from contacts slice
         postCount={userPosts.length}
         onEditProfile={handleEditProfile}
+        onFollow={handleFollow}
+        onUnfollow={handleUnfollow}
       />
 
       {/* Profile Tabs */}
@@ -180,6 +227,16 @@ export function ProfilePage({ className }: ProfilePageProps) {
           </div>
         )}
       </div>
+
+      {/* Profile Edit Modal */}
+      {isAuthenticated && (
+        <ProfileEditModal
+          isOpen={isEditModalOpen}
+          profile={displayProfile}
+          onClose={() => setIsEditModalOpen(false)}
+          onSuccess={handleEditSuccess}
+        />
+      )}
     </div>
   );
 }

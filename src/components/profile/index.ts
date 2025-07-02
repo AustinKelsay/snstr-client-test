@@ -4,4 +4,5 @@
  */
 
 export { ProfileCard } from './ProfileCard'
-export { ProfileHeader } from './ProfileHeader' 
+export { ProfileHeader } from './ProfileHeader'
+export { ProfileEditModal } from './ProfileEditModal' 
