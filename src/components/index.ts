@@ -24,4 +24,7 @@ export { default as Select } from './ui/Select'
 export { default as Textarea } from './ui/Textarea'
 
 // Post components
-export { PostCard, PostList } from './post' 
+export { PostCard, PostComposer, PostList } from './post'
+
+// Profile components
+export { ProfileCard, ProfileHeader } from './profile' 

@@ -11,8 +11,7 @@ import { fetchUserContacts } from '@/store/slices/contactsSlice'
 import { likePost, repostEvent, optimisticLike, optimisticRepost } from '@/store/slices/interactionsSlice'
 import { selectFeedPosts, selectIsFeedLoading, selectFeedError, selectHasMoreFeed } from '@/store/selectors'
 import { selectFollowedPubkeys, selectIsFetchingContacts } from '@/store/selectors/contactsSelectors'
-import { selectInteractionButtonStates } from '@/store/selectors/interactionsSelectors'
-import { PostList } from '@/components/post'
+import { PostList, PostComposer } from '@/components/post'
 import type { FeedType, Post, PublicKey } from '@/types'
 
 export interface TimelinePageProps {
@@ -187,6 +186,17 @@ export function TimelinePage({ className }: TimelinePageProps) {
           </div>
         </div>
       </div>
+
+      {/* Post Composer */}
+      {isAuthenticated && (
+        <div className="max-w-2xl mx-auto px-4 py-4 border-b border-gray-800 bg-black/95 sticky top-[120px] z-10 backdrop-blur">
+          <PostComposer
+            placeholder="What's happening on Nostr?"
+            maxLength={500}
+            className="bg-gray-900"
+          />
+        </div>
+      )}
 
       {/* Timeline Content */}
       <div className="max-w-2xl mx-auto">
