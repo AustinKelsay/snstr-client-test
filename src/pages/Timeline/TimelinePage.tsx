@@ -12,6 +12,7 @@ import { likePost, repostEvent, optimisticLike, optimisticRepost } from '@/store
 import { selectFeedPosts, selectIsFeedLoading, selectFeedError, selectHasMoreFeed } from '@/store/selectors'
 import { selectFollowedPubkeys, selectIsFetchingContacts } from '@/store/selectors/contactsSelectors'
 import { PostList, PostComposer } from '@/components/post'
+import { useTimelineProfiles } from '@/hooks/useTimelineProfiles'
 import type { FeedType, Post, PublicKey } from '@/types'
 
 export interface TimelinePageProps {
@@ -34,6 +35,13 @@ export function TimelinePage({ className }: TimelinePageProps) {
   const { isAuthenticated, user } = useAppSelector((state) => state.auth)
   const followedPubkeys = useAppSelector(selectFollowedPubkeys)
   const isFetchingContacts = useAppSelector(selectIsFetchingContacts)
+
+  // Automatically load profiles for all posts in timeline
+  useTimelineProfiles(posts, {
+    autoFetch: true,
+    subscribe: true,
+    maxProfiles: 50
+  })
 
   // Fetch user contacts when authenticated
   useEffect(() => {

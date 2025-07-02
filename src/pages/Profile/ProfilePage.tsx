@@ -8,6 +8,7 @@ import { useAppSelector } from '@/store'
 import { selectIsAuthenticated, selectUser } from '@/store/selectors/authSelectors'
 import { ProfileHeader } from '@/components/profile'
 import { PostList } from '@/components/post'
+import { useProfile } from '@/hooks/useProfile'
 import type { UserProfile } from '@/types/auth'
 import type { Post } from '@/types'
 
@@ -28,18 +29,24 @@ export function ProfilePage({ className }: ProfilePageProps) {
   const [isLoadingPosts] = useState(false)
   const [postsError] = useState<string | null>(null)
 
-  // Mock profile data for demonstration
-  const mockProfile: UserProfile = {
+  // Get real profile data
+  const { profile } = useProfile(user?.pubkey || null, {
+    autoFetch: true,
+    subscribe: true
+  })
+
+  // Use real profile data with fallbacks
+  const displayProfile: UserProfile = {
     pubkey: user?.pubkey || 'not-connected',
-    name: user?.name || 'Your Profile',
-    display_name: user?.display_name || 'Your Profile',
-    about: user?.about || 'Connect your Nostr extension to load your profile information',
-    picture: user?.picture,
-    banner: user?.banner,
-    website: user?.website,
-    nip05: user?.nip05,
-    lud16: user?.lud16,
-    lud06: user?.lud06,
+    name: profile?.name || user?.name || 'Your Profile',
+    display_name: profile?.display_name || user?.display_name || 'Your Profile',
+    about: profile?.about || user?.about || 'Connect your Nostr extension to load your profile information',
+    picture: profile?.picture || user?.picture,
+    banner: profile?.banner || user?.banner,
+    website: profile?.website || user?.website,
+    nip05: profile?.nip05 || user?.nip05,
+    lud16: profile?.lud16 || user?.lud16,
+    lud06: profile?.lud06 || user?.lud06,
   }
 
   // Handle edit profile click
@@ -88,7 +95,7 @@ export function ProfilePage({ className }: ProfilePageProps) {
     <div className={`min-h-screen ${className || ''}`}>
       {/* Profile Header */}
       <ProfileHeader
-        profile={mockProfile}
+        profile={displayProfile}
         isOwnProfile={true}
         followerCount={0} // TODO: Get from contacts slice
         followingCount={0} // TODO: Get from contacts slice

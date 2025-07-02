@@ -4,7 +4,7 @@
  */
 
 import { createSelector } from '@reduxjs/toolkit'
-import type { RootState } from '@/store/types'
+import type { RootState } from '@/store'
 
 // Base selector
 const selectContactsState = (state: RootState) => state.contacts

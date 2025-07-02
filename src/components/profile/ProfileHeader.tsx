@@ -10,6 +10,7 @@ import { formatDistanceToNow } from 'date-fns'
 import type { PublicKey } from '@/types'
 import type { UserProfile } from '@/types/auth'
 import Button from '@/components/ui/Button'
+import { Avatar } from '@/components/common/Avatar'
 import { cn } from '@/utils/cn'
 
 interface ProfileHeaderProps {
@@ -114,22 +115,14 @@ export const ProfileHeader = memo(function ProfileHeader({
         {/* Avatar */}
         <div className="flex items-start justify-between -mt-16 sm:-mt-20 mb-4">
           <div className="relative">
-            <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-bg-secondary overflow-hidden bg-gradient-to-br from-accent-primary to-accent-secondary">
-              {profile.picture ? (
-                <img 
-                  src={profile.picture} 
-                  alt={displayName}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement
-                    target.style.display = 'none'
-                  }}
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-bg-primary text-2xl sm:text-3xl font-bold">
-                  {displayName.charAt(0).toUpperCase()}
-                </div>
-              )}
+            <div className="border-4 border-bg-secondary rounded-full">
+              <Avatar
+                src={profile.picture}
+                name={displayName}
+                pubkey={profile.pubkey}
+                size="xl"
+                className="w-24 h-24 sm:w-32 sm:h-32"
+              />
             </div>
           </div>
 

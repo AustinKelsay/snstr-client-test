@@ -9,6 +9,7 @@ import { UserPlus, UserMinus, CheckCircle, MessageCircle, MoreHorizontal } from 
 import type { PublicKey } from '@/types'
 import type { UserProfile } from '@/types/auth'
 import Button from '@/components/ui/Button'
+import { Avatar } from '@/components/common/Avatar'
 import { cn } from '@/utils/cn'
 
 interface ProfileCardProps {
@@ -116,23 +117,12 @@ export const ProfileCard = memo(function ProfileCard({
       >
         {/* Avatar */}
         <div className="flex-shrink-0">
-          <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-accent-primary to-accent-secondary">
-            {profile.picture ? (
-              <img 
-                src={profile.picture} 
-                alt={displayName}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement
-                  target.style.display = 'none'
-                }}
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-bg-primary text-lg font-bold">
-                {displayName.charAt(0).toUpperCase()}
-              </div>
-            )}
-          </div>
+          <Avatar
+            src={profile.picture}
+            name={displayName}
+            pubkey={profile.pubkey}
+            size="lg"
+          />
         </div>
 
         {/* Content */}
@@ -211,23 +201,12 @@ export const ProfileCard = memo(function ProfileCard({
       <div className="flex items-start justify-between mb-3">
         {/* Avatar */}
         <div className="flex-shrink-0">
-          <div className="w-16 h-16 rounded-full overflow-hidden bg-gradient-to-br from-accent-primary to-accent-secondary">
-            {profile.picture ? (
-              <img 
-                src={profile.picture} 
-                alt={displayName}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement
-                  target.style.display = 'none'
-                }}
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-bg-primary text-xl font-bold">
-                {displayName.charAt(0).toUpperCase()}
-              </div>
-            )}
-          </div>
+          <Avatar
+            src={profile.picture}
+            name={displayName}
+            pubkey={profile.pubkey}
+            size="xl"
+          />
         </div>
 
         {/* Action buttons */}

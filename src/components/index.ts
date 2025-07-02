@@ -4,6 +4,7 @@
  */
 
 // Common components
+export { Avatar, AvatarSmall, AvatarLarge } from './common/Avatar'
 export { default as ErrorBoundary } from './common/ErrorBoundary'
 export { default as EmptyState } from './common/EmptyState'
 export { default as Logo } from './common/Logo'

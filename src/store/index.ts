@@ -12,6 +12,7 @@ import uiSlice from './slices/uiSlice'
 import postsSlice from './slices/postsSlice'
 import contactsSlice from './slices/contactsSlice'
 import interactionsSlice from './slices/interactionsSlice'
+import profilesSlice from './slices/profilesSlice'
 
 // Import middleware
 import { notificationMiddleware } from './middleware'
@@ -26,6 +27,7 @@ export const store = configureStore({
     posts: postsSlice,
     contacts: contactsSlice,
     interactions: interactionsSlice,
+    profiles: profilesSlice,
   },
   middleware: getDefaultMiddleware =>
     getDefaultMiddleware({

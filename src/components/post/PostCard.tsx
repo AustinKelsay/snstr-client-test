@@ -9,7 +9,9 @@ import { formatDistanceToNow } from 'date-fns'
 import { Heart, MessageCircle, Repeat2, Zap, MoreHorizontal } from 'lucide-react'
 import type { Post, PublicKey } from '@/types'
 import Button from '@/components/ui/Button'
+import { Avatar } from '@/components/common/Avatar'
 import { cn } from '@/utils/cn'
+import { useProfileDisplay } from '@/hooks/useProfile'
 
 interface PostCardProps {
   /** The post data to display */
@@ -104,8 +106,11 @@ export const PostCard = memo(function PostCard({
     }
   }, [onRepost, post.id])
 
-  // Format author display name
-  const displayName = post.author_name || `${post.pubkey.slice(0, 8)}...${post.pubkey.slice(-4)}`
+  // Get real profile data
+  const profileDisplay = useProfileDisplay(post.pubkey)
+  const displayName = profileDisplay.name
+  const avatarUrl = profileDisplay.avatar
+  const isVerified = profileDisplay.isVerified
 
   // Format content with basic parsing
   const formatContent = useCallback((content: string) => {
@@ -131,23 +136,12 @@ export const PostCard = memo(function PostCard({
           onClick={handleAuthorClick}
           className="flex-shrink-0 hover:opacity-80 transition-opacity"
         >
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent-primary to-accent-secondary flex items-center justify-center">
-            {post.author_picture ? (
-              <img 
-                src={post.author_picture} 
-                alt={displayName}
-                className="w-full h-full rounded-full object-cover"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement
-                  target.style.display = 'none'
-                }}
-              />
-            ) : (
-              <span className="text-black font-bold text-sm">
-                {displayName.charAt(0).toUpperCase()}
-              </span>
-            )}
-          </div>
+          <Avatar
+            src={avatarUrl}
+            name={displayName}
+            pubkey={post.pubkey}
+            size="md"
+          />
         </button>
 
         {/* Post Content */}
@@ -161,7 +155,7 @@ export const PostCard = memo(function PostCard({
               <span className="font-semibold text-white group-hover:text-accent-primary">
                 {displayName}
               </span>
-              {post.author_nip05 && (
+              {isVerified && (
                 <span className="text-accent-primary text-sm">✓</span>
               )}
             </button>
