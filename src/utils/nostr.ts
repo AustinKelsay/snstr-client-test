@@ -4,6 +4,7 @@
  * and common Nostr protocol operations
  */
 
+import DOMPurify from 'dompurify'
 import type { NostrEvent, PublicKey, Timestamp } from '@/types'
 
 /**
@@ -201,12 +202,15 @@ export function extractUrls(content: string): string[] {
 
 /**
  * Sanitize text content by removing potentially harmful elements
+ * Uses DOMPurify for robust XSS protection
  */
 export function sanitizeContent(content: string): string {
-  // Remove HTML tags and trim
-  const sanitized = content
-    .replace(/<[^>]*>/g, '')
-    .trim()
+  // Use DOMPurify for safe HTML sanitization
+  const sanitized = DOMPurify.sanitize(content, {
+    ALLOWED_TAGS: [], // Strip all HTML tags
+    ALLOWED_ATTR: [], // Strip all attributes
+    KEEP_CONTENT: true // Keep text content
+  }).trim()
   
   return sanitized
 }

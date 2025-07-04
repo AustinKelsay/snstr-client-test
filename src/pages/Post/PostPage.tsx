@@ -342,10 +342,28 @@ export function PostPage({ className }: PostPageProps) {
                   key={reply.id}
                   post={reply}
                   onPostClick={(post) => navigate(`/post/${post.id}`)}
-                  onLike={handleLike}
-                  onRepost={handleRepost}
-                  onReply={handleReply}
-                  onZap={handleZap}
+                  onLike={() => {
+                    if (!isAuthenticated) return
+                    dispatch(optimisticLike(reply.id))
+                    dispatch(likePost({ eventId: reply.id, eventPubkey: reply.pubkey }))
+                  }}
+                  onRepost={() => {
+                    if (!isAuthenticated) return
+                    dispatch(optimisticRepost(reply.id))
+                    dispatch(repostEvent({ 
+                      eventId: reply.id, 
+                      eventPubkey: reply.pubkey,
+                      originalEvent: reply
+                    }))
+                  }}
+                  onReply={() => {
+                    if (!isAuthenticated) return
+                    navigate(`/post/${reply.id}`)
+                  }}
+                  onZap={() => {
+                    if (!isAuthenticated) return
+                    console.log('Zap reply:', reply.id)
+                  }}
                   onAuthorClick={handleAuthorClick}
                   className="border-none"
                 />

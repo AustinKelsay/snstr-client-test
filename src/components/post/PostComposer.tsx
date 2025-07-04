@@ -12,6 +12,7 @@ import { addPost } from '@/store/slices/postsSlice'
 import { nostrClient } from '@/features/nostr/nostrClient'
 import Button from '@/components/ui/Button'
 import { Textarea } from '@/components/ui/Textarea'
+import { SafeContent } from './SafeContent'
 import { cn } from '@/utils/cn'
 import type { Post, NostrEvent } from '@/types'
 
@@ -94,13 +95,7 @@ export function PostComposer({
     }
   }, [content])
 
-  // Format content with highlighting
-  const formatPreviewContent = useCallback((text: string) => {
-    return text
-      .replace(/(#[\w]+)/g, '<span class="text-accent-primary font-mono font-semibold">#$1</span>')
-      .replace(/(@[\w]+)/g, '<span class="text-accent-primary font-mono font-semibold">@$1</span>')
-      .replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-text-link hover:text-text-link-hover underline font-mono break-all">$1</a>')
-  }, [])
+
 
   // Handle content change
   const handleContentChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -322,10 +317,10 @@ export function PostComposer({
               <div className="flex-1 h-px bg-border-secondary" />
             </div>
             <div className="p-4 bg-bg-tertiary border border-border-primary rounded">
-            <div 
-                className="text-text-primary leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: formatPreviewContent(content) }}
-            />
+              <SafeContent 
+                content={content}
+                className="text-text-primary"
+              />
             </div>
           </div>
         )}

@@ -109,9 +109,9 @@ export const selectIsProfileStale = createSelector(
     const entry = profiles[pubkey]
     if (!entry) return true
     
-    const now = Date.now()
-    const CACHE_EXPIRATION = 5 * 60 * 1000 // 5 minutes
-    return (now - entry.lastFetched * 1000) > CACHE_EXPIRATION || entry.isStale
+    const now = Date.now() / 1000 // Convert to seconds to match lastFetched
+    const CACHE_EXPIRATION = 5 * 60 // 5 minutes in seconds
+    return (now - entry.lastFetched) > CACHE_EXPIRATION || entry.isStale
   }
 )
 
@@ -198,14 +198,14 @@ export const selectProfileCacheStats = createSelector(
 export const selectProfilesNeedingFetch = createSelector(
   [selectAllProfiles, (state: RootState, pubkeys: PublicKey[]) => pubkeys],
   (profiles, pubkeys) => {
-    const now = Date.now()
-    const CACHE_EXPIRATION = 5 * 60 * 1000 // 5 minutes
+    const now = Date.now() / 1000 // Convert to seconds to match lastFetched
+    const CACHE_EXPIRATION = 5 * 60 // 5 minutes in seconds
     
     return pubkeys.filter(pubkey => {
       const entry = profiles[pubkey]
       if (!entry) return true
       
-      return (now - entry.lastFetched * 1000) > CACHE_EXPIRATION || entry.isStale
+      return (now - entry.lastFetched) > CACHE_EXPIRATION || entry.isStale
     })
   }
 )

@@ -152,7 +152,13 @@ export async function signEvent(event: UnsignedEvent): Promise<SignedEvent | nul
     }
 
     const signedEvent = await signEventWithNip07(event)
-    return signedEvent as SignedEvent
+    
+    // Check if signing failed and returned null
+    if (!signedEvent) {
+      throw new Error('NIP-07 signing failed: no event returned')
+    }
+    
+    return signedEvent
   } catch (error) {
     console.error('Failed to sign event:', error)
     return null

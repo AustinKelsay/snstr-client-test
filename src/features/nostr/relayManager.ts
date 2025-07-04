@@ -5,43 +5,7 @@
  */
 
 import type { RelayUrl } from '@/types'
-
-/**
- * Relay connection status
- */
-export interface RelayStatus {
-  url: RelayUrl
-  connected: boolean
-  connecting: boolean
-  error?: string
-  lastConnected?: Date
-  attempts: number
-  latency?: number
-  messageCount: number
-}
-
-/**
- * Relay connection configuration
- */
-export interface RelayConfig {
-  url: RelayUrl
-  read: boolean
-  write: boolean
-  enabled: boolean
-  priority: number
-}
-
-/**
- * Relay health metrics
- */
-export interface RelayHealth {
-  url: RelayUrl
-  uptime: number
-  averageLatency: number
-  errorRate: number
-  messageRate: number
-  lastActive: Date
-}
+import type { RelayStatus, RelayConfig, RelayHealth } from './types'
 
 /**
  * Relay manager configuration

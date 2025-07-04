@@ -8,6 +8,7 @@
 import { Nostr, RelayEvent, type NostrEvent, type Filter } from 'snstr'
 type RelayEventType = RelayEvent
 import type { PublicKey, PrivateKey, RelayUrl } from '@/types'
+import type { RelayStatus, SubscriptionOptions, QueryOptions } from './types'
 
 // Default relays for the application
 const DEFAULT_RELAYS: RelayUrl[] = [
@@ -41,43 +42,7 @@ export type EventHandler = (event: NostrEvent, relayUrl: RelayUrl) => void
 export type RelayEventHandler = (relayUrl: RelayUrl) => void
 export type ErrorHandler = (error: Error, relayUrl?: RelayUrl) => void
 
-/**
- * Subscription options
- */
-export interface SubscriptionOptions {
-  /** Automatically close subscription after EOSE */
-  autoClose?: boolean
-  /** Timeout for EOSE in milliseconds */
-  eoseTimeout?: number
-  /** Maximum number of events to receive */
-  maxEvents?: number
-  /** Unique identifier for the subscription */
-  id?: string
-}
 
-/**
- * Query options for fetching events
- */
-export interface QueryOptions {
-  /** Maximum time to wait for responses in milliseconds */
-  maxWait?: number
-  /** Minimum number of relays that must respond */
-  minResponses?: number
-  /** Whether to deduplicate events by ID */
-  deduplicate?: boolean
-}
-
-/**
- * Relay connection status
- */
-export interface RelayStatus {
-  url: RelayUrl
-  connected: boolean
-  connecting: boolean
-  error?: string
-  lastConnected?: Date
-  attempts: number
-}
 
 /**
  * Main Nostr client wrapper class
@@ -109,7 +74,8 @@ export class NostrClient {
         url: relay,
         connected: false,
         connecting: false,
-        attempts: 0
+        attempts: 0,
+        messageCount: 0
       })
     })
   }
@@ -288,7 +254,8 @@ export class NostrClient {
         url: relayUrl,
         connected: false,
         connecting: false,
-        attempts: 0
+        attempts: 0,
+        messageCount: 0
       })
       
       // Reconnect to all relays including the new one

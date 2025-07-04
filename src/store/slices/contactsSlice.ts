@@ -6,6 +6,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import { nostrClient } from '@/features/nostr/nostrClient'
 import type { NostrEvent, Filter } from 'snstr'
+import '@/types/auth' // Import to extend Window interface with nostr property
 
 // Contact interface based on NIP-02 spec
 export interface Contact {
@@ -268,7 +269,7 @@ async function createContactListEvent(contacts: Contact[]): Promise<NostrEvent> 
     }
 
     // Sign the event using NIP-07
-    if (typeof window !== 'undefined' && window.nostr) {
+    if (typeof window !== 'undefined' && window.nostr && typeof window.nostr.signEvent === 'function') {
       const signedEvent = await window.nostr.signEvent(event)
       return signedEvent as NostrEvent
     } else {

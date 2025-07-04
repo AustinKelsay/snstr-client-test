@@ -10,6 +10,7 @@ import { Heart, MessageCircle, Repeat2, Zap, MoreHorizontal, Clock } from 'lucid
 import type { Post, PublicKey } from '@/types'
 import Button from '@/components/ui/Button'
 import { Avatar } from '@/components/common/Avatar'
+import { SafeContent } from './SafeContent'
 import { cn } from '@/utils/cn'
 import { useProfileDisplay } from '@/hooks/useProfile'
 
@@ -113,15 +114,6 @@ export const PostCard = memo(function PostCard({
   const avatarUrl = profileDisplay.avatar
   const isVerified = profileDisplay.isVerified
 
-  // Format content with enhanced parsing
-  const formatContent = useCallback((content: string) => {
-    // Enhanced parsing for hashtags, mentions, and URLs
-    return content
-      .replace(/(#[\w]+)/g, '<span class="text-accent-primary font-mono text-sm hover:text-accent-secondary transition-colors">#<span class="font-semibold">$1</span></span>')
-      .replace(/(@[\w]+)/g, '<span class="text-accent-primary font-mono text-sm hover:text-accent-secondary transition-colors">@<span class="font-semibold">$1</span></span>')
-      .replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-text-link hover:text-text-link-hover underline font-mono text-sm break-all">$1</a>')
-  }, [])
-
   return (
     <article 
       className={cn(
@@ -186,9 +178,9 @@ export const PostCard = memo(function PostCard({
 
           {/* Content */}
           <div className="space-y-3">
-            <div 
-              className="text-text-primary leading-relaxed text-base break-words"
-              dangerouslySetInnerHTML={{ __html: formatContent(post.content) }}
+            <SafeContent 
+              content={post.content}
+              className="text-text-primary text-base"
             />
           </div>
 

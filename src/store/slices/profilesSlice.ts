@@ -134,11 +134,12 @@ function validateProfileMetadata(content: string): Partial<UserProfile> | null {
 
 /**
  * Validate image URL for security
+ * Only accepts HTTPS URLs to prevent mixed content warnings and security issues
  */
 function isValidImageUrl(url: string): boolean {
   try {
     const parsed = new URL(url)
-    return (parsed.protocol === 'https:' || parsed.protocol === 'http:') && 
+    return parsed.protocol === 'https:' && 
            url.length <= 500 &&
            !url.includes('<') && !url.includes('>')
   } catch {
