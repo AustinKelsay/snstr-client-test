@@ -32,6 +32,8 @@ export interface PostInteractions {
   likes: number
   /** Repost count */
   reposts: number
+  /** Reply count */
+  replies: number
   /** Zap count and total amount */
   zaps: {
     count: number
@@ -211,6 +213,15 @@ export const fetchPostInteractions = createAsyncThunk(
         }
       ], { maxWait: 3000 })
 
+      // Fetch replies (kind 1 with #e tags referencing this event)
+      const replyEvents = await nostrClient.fetchEvents([
+        {
+          kinds: [1], // Text notes
+          '#e': [eventId],
+          limit: 1000
+        }
+      ], { maxWait: 3000 })
+
       // Count likes (reactions with '+' content)
       const likes = reactionEvents.filter(event => 
         event.content === '+' || event.content === '👍' || event.content === '❤️'
@@ -218,6 +229,9 @@ export const fetchPostInteractions = createAsyncThunk(
 
       // Count reposts
       const reposts = repostEvents.length
+
+      // Count replies (exclude the original post if it somehow appears)
+      const replies = replyEvents.filter(event => event.id !== eventId).length
 
       // TODO: Fetch zaps when implementing NIP-57
       const zaps = { count: 0, total: 0 }
@@ -239,12 +253,114 @@ export const fetchPostInteractions = createAsyncThunk(
         eventId,
         likes,
         reposts,
+        replies,
         zaps,
         userInteractions,
       }
     } catch (error) {
       console.error('Failed to fetch post interactions:', error)
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch interactions')
+    }
+  }
+)
+
+/**
+ * Batch fetch interaction counts for multiple posts efficiently
+ */
+export const fetchBatchPostInteractions = createAsyncThunk(
+  'interactions/fetchBatchPostInteractions',
+  async (eventIds: string[], { rejectWithValue }) => {
+    try {
+      if (eventIds.length === 0) {
+        return []
+      }
+
+      // Batch fetch all reactions for all events
+      const [reactionEvents, repostEvents, replyEvents] = await Promise.all([
+        // Fetch all reactions (kind 7) for these events
+        nostrClient.fetchEvents([
+          {
+            kinds: [7],
+            '#e': eventIds,
+            limit: Math.min(2000, eventIds.length * 50) // Cap at 2000, ~50 per post
+          }
+        ], { maxWait: 5000 }),
+
+        // Fetch all reposts (kind 6) for these events  
+        nostrClient.fetchEvents([
+          {
+            kinds: [6],
+            '#e': eventIds,
+            limit: Math.min(1000, eventIds.length * 25) // Cap at 1000, ~25 per post
+          }
+        ], { maxWait: 5000 }),
+
+        // Fetch all replies (kind 1) for these events
+        nostrClient.fetchEvents([
+          {
+            kinds: [1],
+            '#e': eventIds,
+            limit: Math.min(1500, eventIds.length * 30) // Cap at 1500, ~30 per post
+          }
+        ], { maxWait: 5000 })
+      ])
+
+      // Get current user for interaction checking
+      const currentUserPubkey = await getCurrentUserPubkey()
+
+      // Process each event's interactions
+      const results = eventIds.map(eventId => {
+        // Filter events for this specific post
+        const eventReactions = reactionEvents.filter(event => 
+          event.tags.some(tag => tag[0] === 'e' && tag[1] === eventId)
+        )
+        
+        const eventReposts = repostEvents.filter(event => 
+          event.tags.some(tag => tag[0] === 'e' && tag[1] === eventId)
+        )
+        
+        const eventReplies = replyEvents.filter(event => 
+          event.tags.some(tag => tag[0] === 'e' && tag[1] === eventId) &&
+          event.id !== eventId // Exclude the original post
+        )
+
+        // Count likes (reactions with positive content)
+        const likes = eventReactions.filter(event => 
+          event.content === '+' || event.content === '👍' || event.content === '❤️'
+        ).length
+
+        const reposts = eventReposts.length
+        const replies = eventReplies.length
+
+        // TODO: Fetch zaps when implementing NIP-57
+        const zaps = { count: 0, total: 0 }
+
+        // Check user interactions
+        const userInteractions = {
+          liked: currentUserPubkey ? eventReactions.some(event => 
+            event.pubkey === currentUserPubkey && 
+            (event.content === '+' || event.content === '👍' || event.content === '❤️')
+          ) : false,
+          reposted: currentUserPubkey ? eventReposts.some(event => 
+            event.pubkey === currentUserPubkey
+          ) : false,
+          zapped: false, // TODO: Implement zap checking
+        }
+
+        return {
+          eventId,
+          likes,
+          reposts,
+          replies,
+          zaps,
+          userInteractions,
+        }
+      })
+
+      return results
+    } catch (error) {
+      console.error('Failed to fetch batch post interactions:', error)
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch batch interactions')
     }
   }
 )
@@ -289,6 +405,7 @@ export const interactionsSlice = createSlice({
           eventId,
           likes: 1,
           reposts: 0,
+          replies: 0,
           zaps: { count: 0, total: 0 },
           userInteractions: {
             liked: true,
@@ -321,6 +438,7 @@ export const interactionsSlice = createSlice({
           eventId,
           likes: 0,
           reposts: 1,
+          replies: 0,
           zaps: { count: 0, total: 0 },
           userInteractions: {
             liked: false,
@@ -409,6 +527,16 @@ export const interactionsSlice = createSlice({
         state.postInteractions[interactions.eventId] = interactions
         // Clear optimistic updates for this post
         delete state.optimisticUpdates[interactions.eventId]
+      })
+
+      // Batch fetch post interactions
+      .addCase(fetchBatchPostInteractions.fulfilled, (state, action) => {
+        const interactionsList = action.payload
+        interactionsList.forEach(interactions => {
+          state.postInteractions[interactions.eventId] = interactions
+          // Clear optimistic updates for these posts
+          delete state.optimisticUpdates[interactions.eventId]
+        })
       })
   },
 })

@@ -5,7 +5,7 @@
  */
 
 import { memo, useState, useEffect, useCallback } from 'react'
-import { Plus, Trash2, TestTube, Wifi, Clock, CheckCircle, XCircle } from 'lucide-react'
+import { Plus, Trash2, TestTube, Wifi, Clock, CheckCircle, XCircle, WifiOff, Activity, Server, Shield } from 'lucide-react'
 import { relayManager, type RelayConfig, type RelayStatus } from '@/features/nostr/relayManager'
 import Button from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -135,46 +135,46 @@ export const RelayManagement = memo(function RelayManagement({
     setRelays(relayManager.getAllRelays())
   }, [relays])
 
-  // Get status indicator
+  // Get enhanced status indicator
   const getStatusIndicator = (url: string) => {
     const status = statuses.get(url)
     const isTesting = testingRelays.has(url)
 
     if (isTesting) {
       return (
-        <div className="flex items-center gap-2 text-warning">
+        <div className="flex items-center gap-2 text-accent-primary bg-accent-primary/10 px-2 py-1 rounded border border-accent-primary/30">
           <LoadingSpinner size="sm" />
-          <span className="text-xs">Testing...</span>
+          <span className="text-xs font-mono tracking-wide">TESTING...</span>
         </div>
       )
     }
 
     if (!status) {
       return (
-        <div className="flex items-center gap-2 text-text-tertiary">
+        <div className="flex items-center gap-2 text-text-tertiary bg-bg-quaternary px-2 py-1 rounded border border-border-primary">
           <Clock className="w-4 h-4" />
-          <span className="text-xs">Unknown</span>
+          <span className="text-xs font-mono tracking-wide">UNKNOWN</span>
         </div>
       )
     }
 
     if (status.connecting) {
       return (
-        <div className="flex items-center gap-2 text-warning">
-          <LoadingSpinner size="sm" />
-          <span className="text-xs">Connecting...</span>
+        <div className="flex items-center gap-2 text-warning bg-warning/10 px-2 py-1 rounded border border-warning/30">
+          <Activity className="w-4 h-4 animate-pulse" />
+          <span className="text-xs font-mono tracking-wide">CONNECTING...</span>
         </div>
       )
     }
 
     if (status.connected) {
       return (
-        <div className="flex items-center gap-2 text-success">
+        <div className="flex items-center gap-2 text-success bg-success/10 px-2 py-1 rounded border border-success/30">
           <CheckCircle className="w-4 h-4" />
-          <span className="text-xs">Connected</span>
+          <span className="text-xs font-mono tracking-wide">ONLINE</span>
           {status.latency && (
-            <span className="text-xs text-text-tertiary">
-              ({status.latency}ms)
+            <span className="text-xs font-mono text-text-tertiary bg-bg-secondary px-1 rounded">
+              {status.latency}ms
             </span>
           )}
         </div>
@@ -182,32 +182,51 @@ export const RelayManagement = memo(function RelayManagement({
     }
 
     return (
-      <div className="flex items-center gap-2 text-error">
+      <div className="flex items-center gap-2 text-error bg-error/10 px-2 py-1 rounded border border-error/30">
         <XCircle className="w-4 h-4" />
-        <span className="text-xs">
-          {status.error || 'Disconnected'}
+        <span className="text-xs font-mono tracking-wide">
+          {status.error ? 'ERROR' : 'OFFLINE'}
         </span>
       </div>
     )
   }
 
+  const connectedCount = Array.from(statuses.values()).filter(s => s.connected).length
+  const readRelayCount = relays.filter(r => r.read && r.enabled).length
+  const writeRelayCount = relays.filter(r => r.write && r.enabled).length
+
   return (
     <div className={cn('space-y-6', className)}>
-      {/* Header */}
-      <div>
-        <h3 className="text-lg font-semibold text-text-primary mb-2">
-          Relay Management
+      {/* Header with status overview */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-3">
+          <h3 className="text-xl font-bold text-text-primary font-mono tracking-wide">
+            RELAY MANAGEMENT
         </h3>
-        <p className="text-text-secondary">
-          Manage your Nostr relay connections. Relays are servers that store and distribute your posts.
+          <div className={cn(
+            'flex items-center gap-2 px-3 py-1 rounded text-xs font-mono',
+            connectedCount > 0 ? 'bg-success/10 text-success border border-success/30' : 
+            'bg-error/10 text-error border border-error/30'
+          )}>
+            <Server className="w-4 h-4" />
+            <span>{connectedCount}/{relays.length} ONLINE</span>
+          </div>
+        </div>
+        
+        <p className="text-text-secondary font-mono text-sm leading-relaxed">
+          Manage your Nostr relay connections. Relays are decentralized servers that store and distribute your encrypted messages across the network.
         </p>
       </div>
 
       {/* Add Relay Form */}
-      <div className="card">
-        <h4 className="text-md font-medium text-text-primary mb-4">
-          Add New Relay
+      <div className="bg-bg-secondary border border-border-primary rounded p-6 space-y-4">
+        <div className="flex items-center gap-3 mb-4">
+          <Plus className="w-5 h-5 text-accent-primary" />
+          <h4 className="text-lg font-semibold text-text-primary font-mono tracking-wide">
+            ADD NEW RELAY
         </h4>
+        </div>
+        
         <div className="flex gap-3">
           <Input
             type="url"
@@ -215,6 +234,7 @@ export const RelayManagement = memo(function RelayManagement({
             value={newRelayUrl}
             onChange={(e) => setNewRelayUrl(e.target.value)}
             className="flex-1"
+            variant="technical"
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 handleAddRelay()
@@ -224,92 +244,132 @@ export const RelayManagement = memo(function RelayManagement({
           <Button
             onClick={handleAddRelay}
             disabled={!newRelayUrl.trim() || isAddingRelay}
-            className="flex items-center gap-2"
+            variant="primary"
+            className="flex items-center gap-2 font-mono min-w-[100px]"
           >
             {isAddingRelay ? (
+              <>
               <LoadingSpinner size="sm" />
+                <span>ADDING...</span>
+              </>
             ) : (
+              <>
               <Plus className="w-4 h-4" />
+                <span>ADD</span>
+              </>
             )}
-            <span>Add</span>
           </Button>
         </div>
       </div>
 
       {/* Relay List */}
-      <div className="card">
-        <div className="flex items-center justify-between mb-4">
-          <h4 className="text-md font-medium text-text-primary">
-            Current Relays ({relays.length})
+      <div className="bg-bg-secondary border border-border-primary rounded p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Wifi className="w-5 h-5 text-accent-primary" />
+            <h4 className="text-lg font-semibold text-text-primary font-mono tracking-wide">
+              ACTIVE RELAYS ({relays.length})
           </h4>
-          <div className="text-xs text-text-secondary">
-            Connected: {Array.from(statuses.values()).filter(s => s.connected).length}
+          </div>
+          
+          <div className="flex items-center gap-4 text-xs font-mono">
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 bg-success rounded-full" />
+              <span className="text-text-secondary">{connectedCount} CONNECTED</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 bg-accent-primary rounded-full" />
+              <span className="text-text-secondary">{readRelayCount} READ</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 bg-warning rounded-full" />
+              <span className="text-text-secondary">{writeRelayCount} WRITE</span>
+            </div>
           </div>
         </div>
 
         {relays.length === 0 ? (
-          <div className="text-center py-8">
-            <Wifi className="w-12 h-12 text-text-tertiary mx-auto mb-3" />
-            <p className="text-text-secondary mb-2">
-              No relays configured
+          <div className="text-center py-12 space-y-4">
+            <WifiOff className="w-16 h-16 text-text-tertiary mx-auto" />
+            <div className="space-y-2">
+              <p className="text-text-secondary font-mono text-lg">
+                NO RELAYS CONFIGURED
             </p>
-            <p className="text-text-tertiary text-sm">
-              Add a relay above to get started
+              <p className="text-text-tertiary font-mono text-sm">
+                Add a relay above to connect to the Nostr network
             </p>
+            </div>
           </div>
         ) : (
           <div className="space-y-3">
             {relays.map((relay) => (
               <div
                 key={relay.url}
-                className="flex items-center justify-between p-4 bg-bg-tertiary rounded-lg border border-border-primary"
+                className={cn(
+                  'group relative flex items-center justify-between p-4 rounded border transition-all duration-200',
+                  'bg-bg-tertiary border-border-primary hover:border-accent-primary/50 hover:bg-bg-hover'
+                )}
               >
                 {/* Relay Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 mb-2">
+                <div className="flex-1 min-w-0 space-y-3">
+                  <div className="flex items-center gap-3 flex-wrap">
                     {getStatusIndicator(relay.url)}
-                    <span className="text-text-primary font-mono text-sm truncate">
+                    <span className="text-text-primary font-mono text-sm font-medium truncate">
                       {relay.url}
                     </span>
+                    {!relay.enabled && (
+                      <span className="text-error text-xs font-mono bg-error/10 px-2 py-1 rounded border border-error/30">
+                        DISABLED
+                      </span>
+                    )}
                   </div>
                   
                   {/* Configuration toggles */}
-                  <div className="flex items-center gap-4 text-xs">
-                    <label className="flex items-center gap-1 cursor-pointer">
+                  <div className="flex items-center gap-6">
+                    <label className="flex items-center gap-2 cursor-pointer group/toggle">
                       <input
                         type="checkbox"
                         checked={relay.enabled}
                         onChange={() => handleToggleConfig(relay.url, 'enabled')}
-                        className="w-3 h-3 rounded border-border-secondary bg-bg-secondary"
+                        className="w-4 h-4 rounded border-border-secondary bg-bg-secondary accent-accent-primary"
                       />
-                      <span className={relay.enabled ? 'text-text-primary' : 'text-text-tertiary'}>
-                        Enabled
+                      <span className={cn(
+                        'text-xs font-mono tracking-wide transition-colors',
+                        relay.enabled ? 'text-text-primary group-hover/toggle:text-accent-primary' : 'text-text-tertiary'
+                      )}>
+                        ENABLED
                       </span>
                     </label>
                     
-                    <label className="flex items-center gap-1 cursor-pointer">
+                    <label className="flex items-center gap-2 cursor-pointer group/toggle">
                       <input
                         type="checkbox"
                         checked={relay.read}
                         onChange={() => handleToggleConfig(relay.url, 'read')}
-                        className="w-3 h-3 rounded border-border-secondary bg-bg-secondary"
+                        className="w-4 h-4 rounded border-border-secondary bg-bg-secondary accent-accent-primary"
                         disabled={!relay.enabled}
                       />
-                      <span className={relay.read && relay.enabled ? 'text-text-primary' : 'text-text-tertiary'}>
-                        Read
+                      <span className={cn(
+                        'text-xs font-mono tracking-wide transition-colors',
+                        relay.read && relay.enabled ? 'text-text-primary group-hover/toggle:text-accent-primary' : 'text-text-tertiary'
+                      )}>
+                        READ
                       </span>
                     </label>
                     
-                    <label className="flex items-center gap-1 cursor-pointer">
+                    <label className="flex items-center gap-2 cursor-pointer group/toggle">
                       <input
                         type="checkbox"
                         checked={relay.write}
                         onChange={() => handleToggleConfig(relay.url, 'write')}
-                        className="w-3 h-3 rounded border-border-secondary bg-bg-secondary"
+                        className="w-4 h-4 rounded border-border-secondary bg-bg-secondary accent-accent-primary"
                         disabled={!relay.enabled}
                       />
-                      <span className={relay.write && relay.enabled ? 'text-text-primary' : 'text-text-tertiary'}>
-                        Write
+                      <span className={cn(
+                        'text-xs font-mono tracking-wide transition-colors',
+                        relay.write && relay.enabled ? 'text-text-primary group-hover/toggle:text-accent-primary' : 'text-text-tertiary'
+                      )}>
+                        WRITE
                       </span>
                     </label>
                   </div>
@@ -322,7 +382,7 @@ export const RelayManagement = memo(function RelayManagement({
                     size="sm"
                     onClick={() => handleTestRelay(relay.url)}
                     disabled={testingRelays.has(relay.url)}
-                    className="p-2"
+                    className="p-2 font-mono"
                     title="Test connection"
                   >
                     <TestTube className="w-4 h-4" />
@@ -332,50 +392,90 @@ export const RelayManagement = memo(function RelayManagement({
                     variant="ghost"
                     size="sm"
                     onClick={() => handleRemoveRelay(relay.url)}
-                    className="p-2 text-error hover:bg-error hover:bg-opacity-10"
+                    className="p-2 text-error hover:bg-error/10 hover:border-error/30 font-mono"
                     title="Remove relay"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
+                
+                {/* Connection indicator */}
+                <div className={cn(
+                  'absolute left-0 top-0 bottom-0 w-1 rounded-l transition-all duration-200',
+                  statuses.get(relay.url)?.connected ? 'bg-success' : 
+                  statuses.get(relay.url)?.connecting ? 'bg-warning animate-pulse' : 
+                  'bg-error/30'
+                )} />
               </div>
             ))}
           </div>
         )}
       </div>
 
-      {/* Statistics */}
-      <div className="card">
-        <h4 className="text-md font-medium text-text-primary mb-4">
-          Statistics
+      {/* Enhanced Statistics */}
+      <div className="bg-bg-secondary border border-border-primary rounded p-6 space-y-4">
+        <div className="flex items-center gap-3">
+          <Activity className="w-5 h-5 text-accent-primary" />
+          <h4 className="text-lg font-semibold text-text-primary font-mono tracking-wide">
+            NETWORK STATISTICS
         </h4>
+        </div>
+        
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-accent-primary">
+          <div className="bg-bg-tertiary border border-border-primary rounded p-4 text-center space-y-2">
+            <div className="text-2xl font-bold text-accent-primary font-mono">
               {relays.length}
             </div>
-            <div className="text-xs text-text-secondary">Total Relays</div>
+            <div className="text-xs text-text-secondary font-mono tracking-wide">TOTAL RELAYS</div>
           </div>
           
-          <div className="text-center">
-            <div className="text-2xl font-bold text-success">
-              {Array.from(statuses.values()).filter(s => s.connected).length}
+          <div className="bg-bg-tertiary border border-border-primary rounded p-4 text-center space-y-2">
+            <div className="text-2xl font-bold text-success font-mono">
+              {connectedCount}
             </div>
-            <div className="text-xs text-text-secondary">Connected</div>
+            <div className="text-xs text-text-secondary font-mono tracking-wide">CONNECTED</div>
           </div>
           
-          <div className="text-center">
-            <div className="text-2xl font-bold text-text-primary">
-              {relays.filter(r => r.read && r.enabled).length}
+          <div className="bg-bg-tertiary border border-border-primary rounded p-4 text-center space-y-2">
+            <div className="text-2xl font-bold text-text-primary font-mono">
+              {readRelayCount}
             </div>
-            <div className="text-xs text-text-secondary">Read Relays</div>
+            <div className="text-xs text-text-secondary font-mono tracking-wide">READ RELAYS</div>
           </div>
           
-          <div className="text-center">
-            <div className="text-2xl font-bold text-text-primary">
-              {relays.filter(r => r.write && r.enabled).length}
+          <div className="bg-bg-tertiary border border-border-primary rounded p-4 text-center space-y-2">
+            <div className="text-2xl font-bold text-text-primary font-mono">
+              {writeRelayCount}
             </div>
-            <div className="text-xs text-text-secondary">Write Relays</div>
+            <div className="text-xs text-text-secondary font-mono tracking-wide">WRITE RELAYS</div>
+          </div>
+        </div>
+        
+        {/* Network health indicator */}
+        <div className="mt-6 p-4 bg-bg-primary border border-border-primary rounded">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Shield className="w-5 h-5 text-accent-primary" />
+              <span className="font-mono text-sm text-text-primary">NETWORK HEALTH</span>
+            </div>
+            <div className={cn(
+              'flex items-center gap-2 px-3 py-1 rounded text-xs font-mono',
+              connectedCount >= 3 ? 'bg-success/10 text-success border border-success/30' : 
+              connectedCount >= 1 ? 'bg-warning/10 text-warning border border-warning/30' :
+              'bg-error/10 text-error border border-error/30'
+            )}>
+              <div className={cn(
+                'w-2 h-2 rounded-full',
+                connectedCount >= 3 ? 'bg-success animate-pulse' : 
+                connectedCount >= 1 ? 'bg-warning animate-pulse' :
+                'bg-error'
+              )} />
+              <span>
+                {connectedCount >= 3 ? 'EXCELLENT' : 
+                 connectedCount >= 1 ? 'ADEQUATE' : 
+                 'DISCONNECTED'}
+              </span>
+            </div>
           </div>
         </div>
       </div>

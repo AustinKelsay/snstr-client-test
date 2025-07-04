@@ -8,6 +8,7 @@ import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/tool
 import type { PostsState, Post, LoadPostsOptions, PublicKey } from '@/types'
 import type { NostrEvent } from 'snstr'
 import { nostrClient } from '@/features/nostr/nostrClient'
+import { fetchBatchPostInteractions } from './interactionsSlice'
 
 /**
  * Convert NostrEvent to Post interface with social media metadata
@@ -51,10 +52,14 @@ const initialState: PostsState = {
   timeline: [],
   following: [],
   userPosts: {},
+  singlePost: null,
+  postReplies: {},
   isLoadingTimeline: false,
   isLoadingFollowing: false,
+  isLoadingSinglePost: false,
   timelineError: null,
   followingError: null,
+  singlePostError: null,
   lastUpdated: null,
   hasMoreTimeline: true,
   hasMoreFollowing: true,
@@ -103,6 +108,33 @@ export const loadTimelinePosts = createAsyncThunk(
       }
     } catch (error) {
       throw new Error(error instanceof Error ? error.message : 'Failed to load timeline')
+    }
+  }
+)
+
+/**
+ * Load timeline posts with interaction counts
+ * Fetches posts and then batch fetches their interaction counts
+ */
+export const loadTimelineWithInteractions = createAsyncThunk(
+  'posts/loadTimelineWithInteractions',
+  async (options: LoadPostsOptions = {}, { dispatch }) => {
+    try {
+      // First load the timeline posts
+      const timelineResult = await dispatch(loadTimelinePosts(options)).unwrap()
+      
+      // Extract post IDs for batch interaction fetching
+      const postIds = timelineResult.posts.map(post => post.id)
+      
+      // Batch fetch interaction counts if we have posts
+      if (postIds.length > 0) {
+        // Don't await this - let it run in background to update counts
+        dispatch(fetchBatchPostInteractions(postIds))
+      }
+      
+      return timelineResult
+    } catch (error) {
+      throw new Error(error instanceof Error ? error.message : 'Failed to load timeline with interactions')
     }
   }
 )
@@ -165,6 +197,33 @@ export const loadFollowingPosts = createAsyncThunk(
 )
 
 /**
+ * Load following posts with interaction counts
+ * Fetches posts from followed users and then batch fetches their interaction counts
+ */
+export const loadFollowingWithInteractions = createAsyncThunk(
+  'posts/loadFollowingWithInteractions',
+  async (options: LoadPostsOptions = {}, { dispatch }) => {
+    try {
+      // First load the following posts
+      const followingResult = await dispatch(loadFollowingPosts(options)).unwrap()
+      
+      // Extract post IDs for batch interaction fetching
+      const postIds = followingResult.posts.map(post => post.id)
+      
+      // Batch fetch interaction counts if we have posts
+      if (postIds.length > 0) {
+        // Don't await this - let it run in background to update counts
+        dispatch(fetchBatchPostInteractions(postIds))
+      }
+      
+      return followingResult
+    } catch (error) {
+      throw new Error(error instanceof Error ? error.message : 'Failed to load following feed with interactions')
+    }
+  }
+)
+
+/**
  * Load posts for a specific user
  * Fetches all posts from a specific author using SNSTR
  */
@@ -208,6 +267,87 @@ export const loadUserPosts = createAsyncThunk(
       }
     } catch (error) {
       throw new Error(error instanceof Error ? error.message : 'Failed to load user posts')
+    }
+  }
+)
+
+/**
+ * Fetch a single post by ID
+ */
+export const fetchPost = createAsyncThunk(
+  'posts/fetchPost',
+  async (postId: string) => {
+    try {
+      // Ensure client is connected to relays
+      const connectedRelays = nostrClient.getConnectedRelays()
+      if (connectedRelays.length === 0) {
+        await nostrClient.connectToRelays()
+      }
+
+      const filters = [{
+        ids: [postId],
+        kinds: [1], // Text notes only
+        limit: 1
+      }]
+
+      // Fetch event from relays
+      const events = await nostrClient.fetchEvents(filters, {
+        maxWait: 3000,
+        deduplicate: true,
+      })
+      
+      if (events.length === 0) {
+        throw new Error('Post not found')
+      }
+
+      // Convert event to post
+      const post: Post = convertNostrEventToPost(events[0])
+      
+      return post
+    } catch (error) {
+      throw new Error(error instanceof Error ? error.message : 'Failed to fetch post')
+    }
+  }
+)
+
+/**
+ * Fetch replies to a specific post
+ */
+export const fetchPostReplies = createAsyncThunk(
+  'posts/fetchPostReplies',
+  async (postId: string) => {
+    try {
+      // Ensure client is connected to relays
+      const connectedRelays = nostrClient.getConnectedRelays()
+      if (connectedRelays.length === 0) {
+        await nostrClient.connectToRelays()
+      }
+
+      const filters = [{
+        '#e': [postId], // Events that reference this post
+        kinds: [1], // Text notes only
+        limit: 100
+      }]
+
+      // Fetch reply events from relays
+      const events = await nostrClient.fetchEvents(filters, {
+        maxWait: 5000,
+        deduplicate: true,
+      })
+      
+      // Convert events to posts
+      const replies: Post[] = events.map(convertNostrEventToPost)
+      
+      // Sort by created_at ascending (oldest first for threaded replies)
+      replies.sort((a, b) => a.created_at - b.created_at)
+      
+      return {
+        postId,
+        replies,
+        timestamp: Date.now() / 1000,
+      }
+    } catch (error) {
+      throw new Error(error instanceof Error ? error.message : 'Failed to fetch replies')
     }
   }
 )
@@ -273,6 +413,37 @@ export const postsSlice = createSlice({
             ...updates
           }
         }
+      })
+    },
+
+    // Update multiple posts with interaction counts
+    updatePostsWithInteractions: (state, action: PayloadAction<Record<string, { likes_count: number; reposts_count: number; replies_count: number; is_liked: boolean; is_reposted: boolean }>>) => {
+      const interactionUpdates = action.payload
+      
+      // Update timeline posts
+      state.timeline.forEach((post, index) => {
+        const update = interactionUpdates[post.id]
+        if (update) {
+          state.timeline[index] = { ...post, ...update }
+        }
+      })
+      
+      // Update following feed posts
+      state.following.forEach((post, index) => {
+        const update = interactionUpdates[post.id]
+        if (update) {
+          state.following[index] = { ...post, ...update }
+        }
+      })
+      
+      // Update user posts
+      Object.keys(state.userPosts).forEach(pubkey => {
+        state.userPosts[pubkey].forEach((post, index) => {
+          const update = interactionUpdates[post.id]
+          if (update) {
+            state.userPosts[pubkey][index] = { ...post, ...update }
+          }
+        })
       })
     },
 
@@ -382,6 +553,57 @@ export const postsSlice = createSlice({
         // User posts errors are handled per-component
         console.error('Failed to load user posts:', action.error.message)
       })
+
+    // Single post loading
+    builder
+      .addCase(fetchPost.pending, (state) => {
+        state.isLoadingSinglePost = true
+        state.singlePostError = null
+      })
+      .addCase(fetchPost.fulfilled, (state, action) => {
+        state.isLoadingSinglePost = false
+        state.singlePost = action.payload
+      })
+      .addCase(fetchPost.rejected, (state, action) => {
+        state.isLoadingSinglePost = false
+        state.singlePostError = action.error.message || 'Failed to fetch post'
+      })
+
+    // Post replies loading
+    builder
+      .addCase(fetchPostReplies.pending, () => {
+        // Replies loading is handled per-post
+      })
+      .addCase(fetchPostReplies.fulfilled, (state, action) => {
+        const { postId, replies } = action.payload
+        state.postReplies[postId] = replies
+      })
+      .addCase(fetchPostReplies.rejected, (state, action) => {
+        console.error('Failed to fetch post replies:', action.error.message)
+      })
+
+    // Handle batch interaction loading
+    builder
+      .addCase(fetchBatchPostInteractions.fulfilled, (state, action) => {
+        const interactionsList = action.payload
+        const updates: Record<string, { likes_count: number; reposts_count: number; replies_count: number; is_liked: boolean; is_reposted: boolean }> = {}
+        
+        interactionsList.forEach(interactions => {
+          updates[interactions.eventId] = {
+            likes_count: interactions.likes,
+            reposts_count: interactions.reposts,
+            replies_count: interactions.replies,
+            is_liked: interactions.userInteractions.liked,
+            is_reposted: interactions.userInteractions.reposted,
+          }
+        })
+        
+        // Use the updatePostsWithInteractions reducer to update all relevant posts
+        postsSlice.caseReducers.updatePostsWithInteractions(state, {
+          type: 'posts/updatePostsWithInteractions',
+          payload: updates
+        })
+      })
   },
 })
 
@@ -389,6 +611,7 @@ export const postsSlice = createSlice({
 export const {
   addPost,
   updatePost,
+  updatePostsWithInteractions,
   removePost,
   clearPosts,
   clearTimelineError,

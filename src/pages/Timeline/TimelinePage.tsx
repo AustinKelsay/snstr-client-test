@@ -5,8 +5,9 @@
  */
 
 import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '@/store'
-import { loadTimelinePosts, loadFollowingPosts } from '@/store/slices/postsSlice'
+import { loadTimelineWithInteractions, loadFollowingWithInteractions } from '@/store/slices/postsSlice'
 import { fetchUserContacts } from '@/store/slices/contactsSlice'
 import { likePost, repostEvent, optimisticLike, optimisticRepost } from '@/store/slices/interactionsSlice'
 import { selectFeedPosts, selectIsFeedLoading, selectFeedError, selectHasMoreFeed } from '@/store/selectors'
@@ -25,6 +26,7 @@ export interface TimelinePageProps {
  */
 export function TimelinePage({ className }: TimelinePageProps) {
   const dispatch = useAppDispatch()
+  const navigate = useNavigate()
   const [feedType, setFeedType] = useState<FeedType>('discover')
 
   // Selectors
@@ -53,11 +55,11 @@ export function TimelinePage({ className }: TimelinePageProps) {
   // Load initial posts
   useEffect(() => {
     if (feedType === 'discover') {
-      dispatch(loadTimelinePosts({ limit: 20 }))
+      dispatch(loadTimelineWithInteractions({ limit: 20 }))
     } else if (feedType === 'following' && isAuthenticated) {
       // Use actual followed pubkeys instead of empty array
       if (followedPubkeys.length > 0) {
-        dispatch(loadFollowingPosts({ limit: 20, authors: followedPubkeys }))
+        dispatch(loadFollowingWithInteractions({ limit: 20, authors: followedPubkeys }))
       }
     }
   }, [dispatch, feedType, isAuthenticated, followedPubkeys])
@@ -66,13 +68,13 @@ export function TimelinePage({ className }: TimelinePageProps) {
   const handleLoadMore = useCallback(() => {
     if (feedType === 'discover') {
       const lastPost = posts[posts.length - 1]
-      dispatch(loadTimelinePosts({ 
+      dispatch(loadTimelineWithInteractions({ 
         limit: 20,
         until: lastPost?.created_at 
       }))
     } else if (feedType === 'following' && followedPubkeys.length > 0) {
       const lastPost = posts[posts.length - 1]
-      dispatch(loadFollowingPosts({ 
+      dispatch(loadFollowingWithInteractions({ 
         limit: 20,
         until: lastPost?.created_at,
         authors: followedPubkeys
@@ -82,9 +84,8 @@ export function TimelinePage({ className }: TimelinePageProps) {
 
   // Handle post interactions
   const handlePostClick = useCallback((post: Post) => {
-    // TODO: Navigate to post detail page
-    console.log('Post clicked:', post.id)
-  }, [])
+    navigate(`/post/${post.id}`)
+  }, [navigate])
 
   const handleLike = useCallback((postId: string) => {
     if (!isAuthenticated) {
@@ -154,9 +155,8 @@ export function TimelinePage({ className }: TimelinePageProps) {
   }, [dispatch, isAuthenticated, posts])
 
   const handleAuthorClick = useCallback((pubkey: PublicKey) => {
-    // TODO: Navigate to user profile
-    console.log('Author clicked:', pubkey)
-  }, [])
+    navigate(`/profile/${pubkey}`)
+  }, [navigate])
 
   return (
     <div className={`min-h-screen bg-black ${className || ''}`}>

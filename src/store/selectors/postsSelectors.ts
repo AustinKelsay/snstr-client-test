@@ -219,4 +219,31 @@ export const selectPostsByAuthor = createSelector(
     return Array.from(uniquePostsMap.values())
       .sort((a, b) => b.created_at - a.created_at)
   }
+)
+
+// Single post selectors
+export const selectSinglePost = createSelector(
+  [selectPostsState],
+  (posts) => posts.singlePost
+)
+
+export const selectIsLoadingSinglePost = createSelector(
+  [selectPostsState],
+  (posts) => posts.isLoadingSinglePost
+)
+
+export const selectSinglePostError = createSelector(
+  [selectPostsState],
+  (posts) => posts.singlePostError
+)
+
+// Post replies selectors
+export const selectPostReplies = createSelector(
+  [selectPostsState, (state: RootState, postId: string) => postId],
+  (posts, postId) => posts.postReplies[postId] || []
+)
+
+export const selectAllPostReplies = createSelector(
+  [selectPostsState],
+  (posts) => posts.postReplies
 ) 

@@ -88,10 +88,14 @@ export interface PostsState {
   timeline: Post[]
   following: Post[]
   userPosts: Record<PublicKey, Post[]>
+  singlePost: Post | null
+  postReplies: Record<EventId, Post[]>
   isLoadingTimeline: boolean
   isLoadingFollowing: boolean
+  isLoadingSinglePost: boolean
   timelineError: string | null
   followingError: string | null
+  singlePostError: string | null
   lastUpdated: Timestamp | null
   hasMoreTimeline: boolean
   hasMoreFollowing: boolean

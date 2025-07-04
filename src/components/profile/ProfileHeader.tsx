@@ -5,7 +5,7 @@
  */
 
 import { memo, useCallback } from 'react'
-import { Settings, UserPlus, UserMinus, MessageCircle, MoreHorizontal, CheckCircle, Link as LinkIcon, Calendar } from 'lucide-react'
+import { Settings, UserPlus, UserMinus, MessageCircle, MoreHorizontal, CheckCircle, Link as LinkIcon, Calendar, Zap, Globe, Shield } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import type { PublicKey } from '@/types'
 import type { UserProfile } from '@/types/auth'
@@ -94,59 +94,85 @@ export const ProfileHeader = memo(function ProfileHeader({
   }, [onEditProfile])
 
   return (
-    <div className={cn('relative bg-bg-secondary border-b border-border-primary', className)}>
-      {/* Banner */}
+    <div className={cn('relative bg-bg-secondary border-b border-border-primary overflow-hidden', className)}>
+      {/* Banner with cyberpunk gradient */}
       <div 
-        className="h-48 sm:h-64 bg-gradient-to-br from-accent-primary/20 to-accent-secondary/20 relative"
+        className={cn(
+          'h-48 sm:h-64 relative',
+          profile.banner ? '' : 'bg-gradient-to-br from-bg-primary via-bg-tertiary to-bg-quaternary'
+        )}
         style={{
           backgroundImage: profile.banner ? `url(${profile.banner})` : undefined,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }}
       >
-        {/* Banner overlay for text readability */}
-        {profile.banner && (
-          <div className="absolute inset-0 bg-bg-primary/40" />
-        )}
+        {/* Matrix-style overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-bg-primary/20 to-bg-secondary/80" />
+        
+        {/* Cyberpunk grid effect */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="w-full h-full bg-gradient-to-r from-transparent via-accent-primary/20 to-transparent" />
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent_24px,rgba(0,255,65,0.03)_25px,rgba(0,255,65,0.03)_26px,transparent_27px,transparent_74px,rgba(0,255,65,0.03)_75px,rgba(0,255,65,0.03)_76px,transparent_77px,transparent_99px)] bg-[length:100px_100px]" />
+        </div>
+        
+
       </div>
 
       {/* Profile content */}
       <div className="relative px-4 sm:px-6 pb-6">
-        {/* Avatar */}
-        <div className="flex items-start justify-between -mt-16 sm:-mt-20 mb-4">
+        {/* Avatar and action buttons */}
+        <div className="flex items-start justify-between -mt-16 sm:-mt-20 mb-6">
+          <div className="relative group">
+            {/* Avatar with glow effect */}
           <div className="relative">
-            <div className="border-4 border-bg-secondary rounded-full">
+              <div className="absolute inset-0 bg-accent-primary/20 rounded-full blur-lg group-hover:bg-accent-primary/40 transition-all duration-300" />
+              <div className="relative border-4 border-bg-secondary rounded-full">
               <Avatar
                 src={profile.picture}
                 name={displayName}
                 pubkey={profile.pubkey}
                 size="xl"
-                className="w-24 h-24 sm:w-32 sm:h-32"
+                  className="w-24 h-24 sm:w-32 sm:h-32 ring-2 ring-accent-primary/30 group-hover:ring-accent-primary/60 transition-all duration-300"
               />
+              </div>
+            </div>
+            
+            {/* Status indicators */}
+            <div className="absolute -bottom-2 -right-2 flex gap-1">
+              {profile.nip05 && (
+                <div className="w-6 h-6 bg-accent-primary rounded-full flex items-center justify-center">
+                  <CheckCircle className="w-4 h-4 text-bg-primary" />
+                </div>
+              )}
+              {(profile.lud16 || profile.lud06) && (
+                <div className="w-6 h-6 bg-bitcoin rounded-full flex items-center justify-center">
+                  <Zap className="w-4 h-4 text-bg-primary" />
+                </div>
+              )}
             </div>
           </div>
 
           {/* Action buttons */}
           <div className="flex items-center gap-2 mt-4">
             {isOwnProfile ? (
-              <>
                 <Button
                   variant="secondary"
-                  size="sm"
+                size="md"
                   onClick={handleEditProfile}
-                  className="flex items-center gap-2"
+                className="flex items-center gap-2 font-mono"
                 >
                   <Settings className="w-4 h-4" />
-                  <span className="hidden sm:inline">Edit Profile</span>
+                <span className="hidden sm:inline">EDIT PROFILE</span>
                 </Button>
-              </>
             ) : (
               <>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleMessage}
-                  className="p-2"
+                  className="p-3 font-mono"
+                  title="Send message"
                 >
                   <MessageCircle className="w-4 h-4" />
                 </Button>
@@ -154,29 +180,30 @@ export const ProfileHeader = memo(function ProfileHeader({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="p-2"
+                  className="p-3 font-mono"
+                  title="More options"
                 >
                   <MoreHorizontal className="w-4 h-4" />
                 </Button>
 
                 <Button
-                  variant={isFollowing ? "secondary" : "primary"}
-                  size="sm"
+                  variant={isFollowing ? "outline" : "primary"}
+                  size="md"
                   onClick={handleFollowToggle}
                   disabled={isFollowLoading}
-                  className="flex items-center gap-2 min-w-[90px]"
+                  className="flex items-center gap-2 min-w-[100px] font-mono"
                 >
                   {isFollowLoading ? (
                     <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                   ) : isFollowing ? (
                     <>
                       <UserMinus className="w-4 h-4" />
-                      <span>Unfollow</span>
+                      <span>UNFOLLOW</span>
                     </>
                   ) : (
                     <>
                       <UserPlus className="w-4 h-4" />
-                      <span>Follow</span>
+                      <span>FOLLOW</span>
                     </>
                   )}
                 </Button>
@@ -186,79 +213,106 @@ export const ProfileHeader = memo(function ProfileHeader({
         </div>
 
         {/* Profile info */}
-        <div className="space-y-3">
-          {/* Names */}
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <h1 className="text-xl sm:text-2xl font-bold text-text-primary">
+        <div className="space-y-4">
+          {/* Names and verification */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-2xl sm:text-3xl font-bold text-text-primary font-mono tracking-wide">
                 {displayName}
               </h1>
               {profile.nip05 && (
-                <CheckCircle className="w-5 h-5 text-accent-primary" />
+                <div className="flex items-center gap-1 bg-accent-primary/10 px-2 py-1 rounded border border-accent-primary/30">
+                  <Shield className="w-4 h-4 text-accent-primary" />
+                  <span className="text-xs font-mono text-accent-primary">VERIFIED</span>
+                </div>
               )}
             </div>
-            <p className="text-text-secondary">@{username}</p>
+            
+            <div className="flex items-center gap-2 text-text-secondary">
+              <span className="font-mono text-sm">@{username}</span>
+              <span className="text-text-quaternary">•</span>
+              <span className="font-mono text-xs text-text-tertiary">
+                {profile.pubkey.slice(0, 8)}...{profile.pubkey.slice(-8)}
+              </span>
+            </div>
+            
             {profile.nip05 && (
-              <p className="text-sm text-accent-primary">✓ {profile.nip05}</p>
+              <div className="flex items-center gap-2 text-accent-primary text-sm font-mono">
+                <Globe className="w-4 h-4" />
+                <span>{profile.nip05}</span>
+              </div>
             )}
           </div>
 
           {/* Bio */}
           {profile.about && (
-            <div className="max-w-lg">
-              <p className="text-text-primary leading-relaxed whitespace-pre-wrap">
+            <div className="max-w-2xl">
+              <p className="text-text-primary leading-relaxed whitespace-pre-wrap text-base">
                 {profile.about}
               </p>
             </div>
           )}
 
           {/* Metadata */}
-          <div className="flex flex-wrap items-center gap-4 text-sm text-text-secondary">
+          <div className="flex flex-wrap items-center gap-4 text-sm">
             {/* Website */}
             {profile.website && (
               <a 
                 href={profile.website} 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="flex items-center gap-1 hover:text-accent-primary"
+                className="flex items-center gap-2 text-text-secondary hover:text-accent-primary transition-colors font-mono group"
               >
-                <LinkIcon className="w-4 h-4" />
-                <span>{profile.website.replace(/^https?:\/\//, '')}</span>
+                <LinkIcon className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <span className="border-b border-transparent group-hover:border-accent-primary">
+                  {profile.website.replace(/^https?:\/\//, '')}
+                </span>
               </a>
             )}
 
             {/* Join date */}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2 text-text-secondary font-mono">
               <Calendar className="w-4 h-4" />
-              <span>Joined {joinDateStr}</span>
+              <span>JOINED {joinDateStr.toUpperCase()}</span>
             </div>
 
             {/* Lightning address */}
             {(profile.lud16 || profile.lud06) && (
-              <div className="flex items-center gap-1 text-bitcoin">
-                <span>⚡</span>
-                <span>{profile.lud16 || 'Lightning enabled'}</span>
+              <div className="flex items-center gap-2 text-bitcoin font-mono bg-bitcoin/10 px-2 py-1 rounded border border-bitcoin/30">
+                <Zap className="w-4 h-4" />
+                <span className="text-xs">{profile.lud16 || 'LIGHTNING ENABLED'}</span>
               </div>
             )}
           </div>
 
           {/* Stats */}
-          <div className="flex items-center gap-6 text-sm">
-            <div className="flex items-center gap-1">
-              <span className="font-semibold text-text-primary">{postCount}</span>
-              <span className="text-text-secondary">Posts</span>
+          <div className="flex items-center gap-6 pt-2">
+            <div className="flex items-center gap-2 text-sm group cursor-pointer">
+              <span className="font-bold text-text-primary font-mono text-lg group-hover:text-accent-primary transition-colors">
+                {postCount.toLocaleString()}
+              </span>
+              <span className="text-text-secondary font-mono text-xs tracking-wide">POSTS</span>
             </div>
-            <div className="flex items-center gap-1">
-              <span className="font-semibold text-text-primary">{followingCount}</span>
-              <span className="text-text-secondary">Following</span>
+            
+            <div className="flex items-center gap-2 text-sm group cursor-pointer">
+              <span className="font-bold text-text-primary font-mono text-lg group-hover:text-accent-primary transition-colors">
+                {followingCount.toLocaleString()}
+              </span>
+              <span className="text-text-secondary font-mono text-xs tracking-wide">FOLLOWING</span>
             </div>
-            <div className="flex items-center gap-1">
-              <span className="font-semibold text-text-primary">{followerCount}</span>
-              <span className="text-text-secondary">Followers</span>
+            
+            <div className="flex items-center gap-2 text-sm group cursor-pointer">
+              <span className="font-bold text-text-primary font-mono text-lg group-hover:text-accent-primary transition-colors">
+                {followerCount.toLocaleString()}
+              </span>
+              <span className="text-text-secondary font-mono text-xs tracking-wide">FOLLOWERS</span>
             </div>
           </div>
         </div>
       </div>
+      
+      {/* Bottom accent line */}
+      <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-accent-primary to-transparent" />
     </div>
   )
 })

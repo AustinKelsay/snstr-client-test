@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react'
-import { Send, X, Hash, AtSign, Smile } from 'lucide-react'
+import { Send, X, Hash, AtSign, Eye, EyeOff, Terminal } from 'lucide-react'
 import { useAppDispatch, useAppSelector } from '@/store'
 import { selectIsAuthenticated } from '@/store/selectors/authSelectors'
 import { addPost } from '@/store/slices/postsSlice'
@@ -41,7 +41,7 @@ export function PostComposer({
   isModal = false,
   onClose,
   replyTo,
-  placeholder = "What's happening?",
+  placeholder = "What's happening in the matrix?",
   maxLength = 280,
   className,
   autoFocus = false,
@@ -54,6 +54,7 @@ export function PostComposer({
   const [isPublishing, setIsPublishing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showPreview, setShowPreview] = useState(false)
+  const [showTechnical, setShowTechnical] = useState(false)
   
   // Refs
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -77,6 +78,7 @@ export function PostComposer({
   const isOverLimit = characterCount > maxLength
   const isEmpty = content.trim().length === 0
   const canPublish = isAuthenticated && !isEmpty && !isOverLimit && !isPublishing
+  const isNearLimit = characterCount > maxLength * 0.8
 
   // Parse content for mentions and hashtags
   const parsedContent = useMemo(() => {
@@ -95,9 +97,9 @@ export function PostComposer({
   // Format content with highlighting
   const formatPreviewContent = useCallback((text: string) => {
     return text
-      .replace(/(#\w+)/g, '<span class="text-accent-primary font-medium">$1</span>')
-      .replace(/(@[\w]+)/g, '<span class="text-accent-primary font-medium">$1</span>')
-      .replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-accent-primary hover:underline">$1</a>')
+      .replace(/(#[\w]+)/g, '<span class="text-accent-primary font-mono font-semibold">#$1</span>')
+      .replace(/(@[\w]+)/g, '<span class="text-accent-primary font-mono font-semibold">@$1</span>')
+      .replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-text-link hover:text-text-link-hover underline font-mono break-all">$1</a>')
   }, [])
 
   // Handle content change
@@ -119,8 +121,6 @@ export function PostComposer({
       onClose()
     }
   }, [onClose])
-
-
 
   // Handle publish
   const handlePublish = useCallback(async () => {
@@ -235,16 +235,32 @@ export function PostComposer({
   return (
     <div 
       className={cn(
-        'flex flex-col',
-        isModal && 'bg-bg-secondary border border-border-primary rounded-lg',
+        'flex flex-col bg-bg-secondary border border-border-primary',
+        isModal && 'rounded-sm shadow-lg',
+        'overflow-hidden',
         className
       )}
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-border-primary">
-        <h3 className="text-lg font-semibold text-text-primary">
-          {replyTo ? 'Reply' : 'Compose Post'}
+      <div className="flex items-center justify-between p-4 bg-bg-tertiary border-b border-border-primary">
+        <div className="flex items-center gap-3">
+          <h3 className="text-lg font-semibold text-text-primary font-mono tracking-wide">
+            {replyTo ? 'REPLY' : 'COMPOSE'}
         </h3>
+          {replyTo && (
+            <span className="text-text-secondary font-mono text-xs bg-bg-quaternary px-2 py-1 rounded">
+              TO {replyTo.author_name || `${replyTo.pubkey.slice(0, 8)}...`}
+            </span>
+          )}
+        </div>
+        
+        <div className="flex items-center gap-2">
+          {/* Connection status */}
+          <div className={cn(
+            'w-2 h-2 rounded-full',
+            isAuthenticated ? 'bg-success animate-pulse' : 'bg-error'
+          )} />
+          
         {isModal && onClose && (
           <Button
             variant="ghost"
@@ -255,22 +271,28 @@ export function PostComposer({
             <X className="w-4 h-4" />
           </Button>
         )}
+        </div>
       </div>
 
       {/* Reply context */}
       {replyTo && (
-        <div className="p-4 border-b border-border-primary bg-bg-tertiary">
-          <div className="text-sm text-text-secondary mb-2">
-            Replying to <span className="text-accent-primary">@{replyTo.author_name}</span>
+        <div className="p-4 border-b border-border-primary bg-bg-primary">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-px bg-border-secondary mt-3" />
+            <div className="flex-1 space-y-2">
+              <div className="text-sm text-text-secondary font-mono">
+                REPLYING TO <span className="text-accent-primary font-semibold">@{replyTo.author_name}</span>
+              </div>
+              <div className="text-sm text-text-tertiary font-mono bg-bg-secondary p-3 rounded border">
+                "{replyTo.content.slice(0, 100)}{replyTo.content.length > 100 && '...'}"
+              </div>
           </div>
-          <div className="text-sm text-text-secondary italic">
-            {replyTo.content.slice(0, 100)}{replyTo.content.length > 100 && '...'}
           </div>
         </div>
       )}
 
       {/* Composer */}
-      <div className="flex-1 p-4">
+      <div className="flex-1 p-4 space-y-4">
         {/* Textarea */}
         <Textarea
           ref={textareaRef}
@@ -278,43 +300,75 @@ export function PostComposer({
           onChange={handleContentChange}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
+          maxLength={maxLength}
+          showCharCount={true}
+          autoResize={true}
+          variant={showTechnical ? 'technical' : 'default'}
           className={cn(
             'min-h-[120px] resize-none border-none bg-transparent',
             'text-text-primary placeholder:text-text-tertiary',
-            'focus:ring-0 focus:outline-none'
+            'focus:ring-0 focus:outline-none',
+            showTechnical && 'font-mono text-sm'
           )}
           disabled={isPublishing}
         />
 
         {/* Preview mode */}
         {showPreview && content.trim() && (
-          <div className="mt-4 p-3 border border-border-primary rounded bg-bg-tertiary">
-            <div className="text-sm text-text-secondary mb-2">Preview:</div>
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-text-secondary text-xs font-mono">
+              <div className="w-8 h-px bg-border-secondary" />
+              <span>PREVIEW</span>
+              <div className="flex-1 h-px bg-border-secondary" />
+            </div>
+            <div className="p-4 bg-bg-tertiary border border-border-primary rounded">
             <div 
-              className="text-text-primary"
+                className="text-text-primary leading-relaxed"
               dangerouslySetInnerHTML={{ __html: formatPreviewContent(content) }}
             />
+            </div>
+          </div>
+        )}
+
+        {/* Technical info */}
+        {showTechnical && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-text-secondary text-xs font-mono">
+              <div className="w-8 h-px bg-border-secondary" />
+              <span>TECHNICAL DATA</span>
+              <div className="flex-1 h-px bg-border-secondary" />
+            </div>
+            <div className="p-4 bg-bg-primary border border-border-primary rounded font-mono text-xs space-y-2">
+              <div className="text-text-secondary">MENTIONS: <span className="text-accent-primary">{parsedContent.mentions.length}</span></div>
+              <div className="text-text-secondary">HASHTAGS: <span className="text-accent-primary">{parsedContent.hashtags.length}</span></div>
+              <div className="text-text-secondary">URLS: <span className="text-accent-primary">{parsedContent.urls.length}</span></div>
+              <div className="text-text-secondary">BYTES: <span className="text-accent-primary">{new Blob([content]).size}</span></div>
+            </div>
           </div>
         )}
 
         {/* Error display */}
         {error && (
-          <div className="mt-3 p-3 bg-error/10 border border-error rounded text-error text-sm">
-            {error}
+          <div className="p-4 bg-error/10 border border-error rounded text-error text-sm font-mono">
+            <div className="flex items-start gap-2">
+              <span className="text-error">▲</span>
+              <span>{error}</span>
+            </div>
           </div>
         )}
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between p-4 border-t border-border-primary">
+      <div className="flex items-center justify-between p-4 bg-bg-tertiary border-t border-border-primary">
         {/* Tools */}
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center gap-1">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => insertAtCursor('@')}
             disabled={isPublishing}
-            className="p-2"
+            className="p-2 font-mono text-xs"
+            title="Insert mention"
           >
             <AtSign className="w-4 h-4" />
           </Button>
@@ -323,7 +377,8 @@ export function PostComposer({
             size="sm"
             onClick={() => insertAtCursor('#')}
             disabled={isPublishing}
-            className="p-2"
+            className="p-2 font-mono text-xs"
+            title="Insert hashtag"
           >
             <Hash className="w-4 h-4" />
           </Button>
@@ -332,37 +387,58 @@ export function PostComposer({
             size="sm"
             onClick={() => setShowPreview(!showPreview)}
             disabled={isPublishing}
-            className={cn('p-2', showPreview && 'text-accent-primary')}
+            className={cn('p-2 font-mono text-xs', showPreview && 'text-accent-primary bg-accent-primary/10')}
+            title="Toggle preview"
           >
-            <Smile className="w-4 h-4" />
+            {showPreview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowTechnical(!showTechnical)}
+            disabled={isPublishing}
+            className={cn('p-2 font-mono text-xs', showTechnical && 'text-accent-primary bg-accent-primary/10')}
+            title="Toggle technical view"
+          >
+            <Terminal className="w-4 h-4" />
           </Button>
         </div>
 
         {/* Character count and publish */}
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center gap-4">
           {/* Character counter */}
           <div className={cn(
-            'text-sm',
-            isOverLimit ? 'text-error' : 'text-text-secondary'
+            'text-xs font-mono tabular-nums',
+            isOverLimit ? 'text-error font-bold' : 
+            isNearLimit ? 'text-warning' : 
+            'text-text-secondary'
           )}>
-            {characterCount}/{maxLength}
+            <span className={isOverLimit ? 'text-error' : ''}>
+              {characterCount.toLocaleString()}
+            </span>
+            <span className="text-text-quaternary mx-1">/</span>
+            <span className="text-text-tertiary">
+              {maxLength.toLocaleString()}
+            </span>
           </div>
 
           {/* Publish button */}
           <Button
             onClick={handlePublish}
             disabled={!canPublish}
-            className="min-w-[80px]"
+            variant={canPublish ? 'primary' : 'outline'}
+            size="md"
+            className="min-w-[100px] font-mono"
           >
             {isPublishing ? (
-              <div className="flex items-center space-x-2">
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                <span>Publishing...</span>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                <span>SENDING...</span>
               </div>
             ) : (
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-2">
                 <Send className="w-4 h-4" />
-                <span>{replyTo ? 'Reply' : 'Post'}</span>
+                <span>{replyTo ? 'REPLY' : 'POST'}</span>
               </div>
             )}
           </Button>
@@ -371,8 +447,11 @@ export function PostComposer({
 
       {/* Not authenticated message */}
       {!isAuthenticated && (
-        <div className="p-4 bg-warning/10 border-t border-warning text-warning text-sm text-center">
-          Connect your Nostr extension to publish posts
+        <div className="p-4 bg-warning/10 border-t border-warning text-warning text-sm text-center font-mono">
+          <div className="flex items-center justify-center gap-2">
+            <span>⚠️</span>
+            <span>CONNECT NOSTR EXTENSION TO PUBLISH</span>
+          </div>
         </div>
       )}
     </div>

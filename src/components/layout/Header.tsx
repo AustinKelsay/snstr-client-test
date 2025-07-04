@@ -30,8 +30,8 @@ function Header({ className }: HeaderProps) {
     clearError
   } = useAuth()
 
-  // Handle connect wallet click
-  const handleConnectWallet = async () => {
+  // Handle connect extension click
+  const handleConnectExtension = async () => {
     try {
       if (error) clearError()
       await login()
@@ -45,6 +45,21 @@ function Header({ className }: HeaderProps) {
     logout()
   }
 
+  // Get the best available username for display
+  const getDisplayUsername = () => {
+    if (!user) return 'User'
+    
+    // Priority: display_name > name > truncated pubkey
+    if (user.display_name && !user.display_name.startsWith('user_')) {
+      return user.display_name
+    }
+    if (user.name && !user.name.startsWith('user_')) {
+      return user.name
+    }
+    // If only auto-generated name available, show truncated pubkey
+    return user.pubkey.slice(0, 8) + '...'
+  }
+
   return (
     <div 
       className={cn('border-b backdrop-blur-sm', className)}
@@ -53,7 +68,7 @@ function Header({ className }: HeaderProps) {
         backgroundColor: 'var(--surface-primary)',
       }}
     >
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="container-padding">
         <div className="flex items-center justify-between h-16">
           {/* Logo and branding */}
           <div className="flex items-center gap-3">
@@ -122,7 +137,7 @@ function Header({ className }: HeaderProps) {
                 style={{ color: 'var(--text-secondary)' }}
               >
                 {isAuthenticated
-                  ? `Connected: ${user?.name || 'User'}`
+                  ? `Connected: ${getDisplayUsername()}`
                   : extensionStatus.available
                     ? extensionStatus.hasBasicSupport
                       ? 'Extension Ready'
@@ -143,7 +158,7 @@ function Header({ className }: HeaderProps) {
               </button>
             ) : (
               <button 
-                onClick={handleConnectWallet}
+                onClick={handleConnectExtension}
                 className="btn-base btn-secondary btn-sm"
                 disabled={isLoading || !canAuthenticate}
                 title={
@@ -154,7 +169,7 @@ function Header({ className }: HeaderProps) {
                     : 'Connect your Nostr extension'
                 }
               >
-                {isLoading ? 'Connecting...' : 'Connect Wallet'}
+                {isLoading ? 'Connecting...' : 'Connect Extension'}
               </button>
             )}
             
@@ -199,6 +214,7 @@ function Header({ className }: HeaderProps) {
                 to="/timeline"
                 className="py-2 transition-colors hover:text-glow"
                 style={{ color: 'var(--text-primary)' }}
+                onClick={() => setMobileMenuOpen(false)}
               >
                 Timeline
               </Link>
@@ -206,6 +222,7 @@ function Header({ className }: HeaderProps) {
                 to="/profile"
                 className="py-2 transition-colors hover:text-glow"
                 style={{ color: 'var(--text-primary)' }}
+                onClick={() => setMobileMenuOpen(false)}
               >
                 Profile
               </Link>
@@ -213,6 +230,7 @@ function Header({ className }: HeaderProps) {
                 to="/messages"
                 className="py-2 transition-colors hover:text-glow"
                 style={{ color: 'var(--text-primary)' }}
+                onClick={() => setMobileMenuOpen(false)}
               >
                 Messages
               </Link>
@@ -220,14 +238,14 @@ function Header({ className }: HeaderProps) {
                 to="/settings"
                 className="py-2 transition-colors hover:text-glow"
                 style={{ color: 'var(--text-primary)' }}
+                onClick={() => setMobileMenuOpen(false)}
               >
                 Settings
               </Link>
-              <div 
-                className="pt-4 border-t"
-                style={{ borderColor: 'var(--border-primary)' }}
-              >
-                <div className="flex items-center gap-2 mb-3">
+              
+              {/* Mobile auth section */}
+              <div className="pt-4 border-t" style={{ borderColor: 'var(--border-primary)' }}>
+                <div className="flex items-center gap-2 mb-4">
                   <div 
                     className={
                       extensionStatus.available
@@ -245,16 +263,19 @@ function Header({ className }: HeaderProps) {
                     style={{ color: 'var(--text-secondary)' }}
                   >
                     {isAuthenticated
-                      ? `Connected: ${user?.name || 'User'}`
-                      : 'Extension Detection'}
+                      ? `Connected: ${getDisplayUsername()}`
+                      : extensionStatus.available
+                        ? extensionStatus.hasBasicSupport
+                          ? 'Extension Ready'
+                          : 'Extension Detected (Limited)'
+                        : 'Extension Not Detected'}
                   </span>
                 </div>
                 
-                {/* Mobile auth button */}
                 {isAuthenticated ? (
                   <button 
                     onClick={handleLogout}
-                    className="btn-base btn-secondary btn-sm w-full flex items-center justify-center gap-2"
+                    className="btn-base btn-secondary btn-sm flex items-center gap-2 w-full justify-center"
                     disabled={isLoading}
                   >
                     <LogOut className="w-4 h-4" />
@@ -262,22 +283,18 @@ function Header({ className }: HeaderProps) {
                   </button>
                 ) : (
                   <button 
-                    onClick={handleConnectWallet}
+                    onClick={handleConnectExtension}
                     className="btn-base btn-secondary btn-sm w-full"
                     disabled={isLoading || !canAuthenticate}
                   >
-                    {isLoading ? 'Connecting...' : 'Connect Wallet'}
+                    {isLoading ? 'Connecting...' : 'Connect Extension'}
                   </button>
                 )}
                 
-                {/* Mobile error display */}
                 {error && (
                   <div 
-                    className="text-xs mt-2 p-2 rounded bg-opacity-10"
-                    style={{ 
-                      color: 'var(--error)',
-                      backgroundColor: 'var(--error)'
-                    }}
+                    className="text-xs mt-2"
+                    style={{ color: 'var(--error)' }}
                   >
                     {error}
                   </div>
