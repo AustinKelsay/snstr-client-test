@@ -8,6 +8,7 @@ import { Provider } from 'react-redux'
 import { store } from '@/store'
 import { BrowserRouter } from 'react-router-dom'
 import { ErrorBoundary, PageLayout, Header } from '@/components'
+import { AuthProvider } from '@/features/auth'
 import AppRoutes from '@/routes'
 
 function App() {
@@ -15,9 +16,11 @@ function App() {
     <Provider store={store}>
       <BrowserRouter>
         <ErrorBoundary>
-          <PageLayout header={<Header />} maxWidth="full">
-            <AppRoutes />
-          </PageLayout>
+          <AuthProvider>
+            <PageLayout header={<Header />} maxWidth="full">
+              <AppRoutes />
+            </PageLayout>
+          </AuthProvider>
         </ErrorBoundary>
       </BrowserRouter>
     </Provider>

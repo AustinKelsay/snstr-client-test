@@ -101,7 +101,7 @@ export const uiSlice = createSlice({
     ) => {
       const notification: NotificationState = {
         ...action.payload,
-        id: `notification_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        id: `notification_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`,
         timestamp: Date.now(),
       }
       state.notifications.push(notification)

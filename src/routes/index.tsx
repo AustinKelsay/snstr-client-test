@@ -10,6 +10,7 @@ import LoadingSpinner from '@/components/ui/LoadingSpinner';
 // Lazy load page components
 const TimelinePage = React.lazy(() => import('@/pages/Timeline'));
 const ProfilePage = React.lazy(() => import('@/pages/Profile'));
+const PostPage = React.lazy(() => import('@/pages/Post').then(module => ({ default: module.PostPage })));
 const SettingsPage = React.lazy(() => import('@/pages/Settings'));
 
 /**
@@ -55,6 +56,24 @@ export function AppRoutes() {
         element={
           <RouteWrapper>
             <ProfilePage />
+          </RouteWrapper>
+        } 
+      />
+      
+      <Route 
+        path="/profile/:pubkey" 
+        element={
+          <RouteWrapper>
+            <ProfilePage />
+          </RouteWrapper>
+        } 
+      />
+      
+      <Route 
+        path="/post/:postId" 
+        element={
+          <RouteWrapper>
+            <PostPage />
           </RouteWrapper>
         } 
       />
