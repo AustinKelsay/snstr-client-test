@@ -22,6 +22,7 @@ export { default as Input } from './ui/Input'
 export { default as LoadingSpinner } from './ui/LoadingSpinner'
 export { default as Modal } from './ui/Modal'
 export { default as Select } from './ui/Select'
+export { default as SettingsNavButton } from './ui/SettingsNavButton'
 export { default as Textarea } from './ui/Textarea'
 
 // Post components
