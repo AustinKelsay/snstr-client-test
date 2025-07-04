@@ -549,9 +549,9 @@ export const postsSlice = createSlice({
         const { pubkey, posts } = action.payload
         state.userPosts[pubkey] = posts
       })
-      .addCase(loadUserPosts.rejected, (state, action) => {
-        // User posts errors are handled per-component
-        console.error('Failed to load user posts:', action.error.message)
+      .addCase(loadUserPosts.rejected, () => {
+        // User posts errors are handled per-component through action.error
+        // Error logging should be handled by components, not reducers
       })
 
     // Single post loading
@@ -578,8 +578,9 @@ export const postsSlice = createSlice({
         const { postId, replies } = action.payload
         state.postReplies[postId] = replies
       })
-      .addCase(fetchPostReplies.rejected, (state, action) => {
-        console.error('Failed to fetch post replies:', action.error.message)
+      .addCase(fetchPostReplies.rejected, () => {
+        // Post reply errors are handled per-component through action.error
+        // Error logging should be handled by components, not reducers
       })
 
     // Handle batch interaction loading

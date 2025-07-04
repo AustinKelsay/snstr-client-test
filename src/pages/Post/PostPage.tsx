@@ -337,37 +337,48 @@ export function PostPage({ className }: PostPageProps) {
 
           {replies.length > 0 ? (
             <div className="space-y-0 divide-y divide-border-secondary">
-              {replies.map((reply) => (
-                <PostCard
-                  key={reply.id}
-                  post={reply}
-                  onPostClick={(post) => navigate(`/post/${post.id}`)}
-                  onLike={() => {
-                    if (!isAuthenticated) return
-                    dispatch(optimisticLike(reply.id))
-                    dispatch(likePost({ eventId: reply.id, eventPubkey: reply.pubkey }))
-                  }}
-                  onRepost={() => {
-                    if (!isAuthenticated) return
-                    dispatch(optimisticRepost(reply.id))
-                    dispatch(repostEvent({ 
-                      eventId: reply.id, 
-                      eventPubkey: reply.pubkey,
-                      originalEvent: reply
-                    }))
-                  }}
-                  onReply={() => {
-                    if (!isAuthenticated) return
-                    navigate(`/post/${reply.id}`)
-                  }}
-                  onZap={() => {
-                    if (!isAuthenticated) return
-                    console.log('Zap reply:', reply.id)
-                  }}
-                  onAuthorClick={handleAuthorClick}
-                  className="border-none"
-                />
-              ))}
+              {replies.map((reply) => {
+                // Create specific interaction handlers for each reply
+                const handleReplyLike = () => {
+                  if (!isAuthenticated) return
+                  dispatch(optimisticLike(reply.id))
+                  dispatch(likePost({ eventId: reply.id, eventPubkey: reply.pubkey }))
+                }
+
+                const handleReplyRepost = () => {
+                  if (!isAuthenticated) return
+                  dispatch(optimisticRepost(reply.id))
+                  dispatch(repostEvent({ 
+                    eventId: reply.id, 
+                    eventPubkey: reply.pubkey,
+                    originalEvent: reply
+                  }))
+                }
+
+                const handleReplyToReply = () => {
+                  if (!isAuthenticated) return
+                  navigate(`/post/${reply.id}`)
+                }
+
+                const handleReplyZap = () => {
+                  if (!isAuthenticated) return
+                  console.log('Zap reply:', reply.id)
+                }
+
+                return (
+                  <PostCard
+                    key={reply.id}
+                    post={reply}
+                    onPostClick={(post) => navigate(`/post/${post.id}`)}
+                    onLike={handleReplyLike}
+                    onRepost={handleReplyRepost}
+                    onReply={handleReplyToReply}
+                    onZap={handleReplyZap}
+                    onAuthorClick={handleAuthorClick}
+                    className="border-none"
+                  />
+                )
+              })}
             </div>
           ) : (
             <EmptyState

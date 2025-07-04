@@ -9,6 +9,7 @@ import type { UserProfile } from '@/types/auth'
 import type { PublicKey, Timestamp } from '@/types'
 import type { NostrEvent } from 'snstr'
 import { nostrClient } from '@/features/nostr/nostrClient'
+import { PROFILE_CACHE_EXPIRATION_SECONDS } from '@/constants/cache'
 
 /**
  * Profile cache entry with metadata
@@ -59,10 +60,7 @@ const initialState: ProfilesState = {
   error: null,
 }
 
-/**
- * Cache expiration time (5 minutes)
- */
-const CACHE_EXPIRATION = 5 * 60 * 1000
+
 
 /**
  * Maximum batch size for profile requests
@@ -194,8 +192,8 @@ function convertEventToProfile(event: NostrEvent): UserProfile | null {
  * Check if profile is stale and needs refresh
  */
 function isProfileStale(entry: ProfileCacheEntry): boolean {
-  const now = Date.now()
-  return (now - entry.lastFetched) > CACHE_EXPIRATION || entry.isStale
+  const now = Date.now() / 1000 // Convert to seconds to match lastFetched
+  return (now - entry.lastFetched) > PROFILE_CACHE_EXPIRATION_SECONDS || entry.isStale
 }
 
 /**

@@ -314,6 +314,8 @@ export class NostrClient {
       const subIds = this.client.subscribe(
         filters,
         (event: NostrEvent, relayUrl: RelayUrl) => {
+          // Cache the event for quick access
+          this.eventCache.set(event.id, event)
           onEvent(event, relayUrl)
         },
         undefined,
@@ -411,6 +413,11 @@ export class NostrClient {
         maxWait: options.maxWait || 5000
       })
       
+      // Cache all fetched events
+      events.forEach(event => {
+        this.eventCache.set(event.id, event)
+      })
+      
       if (options.deduplicate !== false) {
         return this.deduplicateEvents(events)
       }
@@ -430,9 +437,16 @@ export class NostrClient {
     options: QueryOptions = {}
   ): Promise<NostrEvent | null> {
     try {
-      return await this.client.fetchOne(filters, {
+      const event = await this.client.fetchOne(filters, {
         maxWait: options.maxWait || 3000
       })
+      
+      // Cache the event if found
+      if (event) {
+        this.eventCache.set(event.id, event)
+      }
+      
+      return event
     } catch (error) {
       console.error('Failed to fetch event:', error)
       throw error

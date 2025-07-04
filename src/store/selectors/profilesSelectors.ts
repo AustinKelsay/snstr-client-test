@@ -8,6 +8,7 @@ import { createSelector } from '@reduxjs/toolkit'
 import type { RootState } from '@/store'
 import type { UserProfile } from '@/types/auth'
 import type { PublicKey } from '@/types'
+import { PROFILE_CACHE_EXPIRATION_SECONDS } from '@/constants/cache'
 
 /**
  * Base selector for profiles state
@@ -110,8 +111,7 @@ export const selectIsProfileStale = createSelector(
     if (!entry) return true
     
     const now = Date.now() / 1000 // Convert to seconds to match lastFetched
-    const CACHE_EXPIRATION = 5 * 60 // 5 minutes in seconds
-    return (now - entry.lastFetched) > CACHE_EXPIRATION || entry.isStale
+    return (now - entry.lastFetched) > PROFILE_CACHE_EXPIRATION_SECONDS || entry.isStale
   }
 )
 
@@ -199,13 +199,12 @@ export const selectProfilesNeedingFetch = createSelector(
   [selectAllProfiles, (state: RootState, pubkeys: PublicKey[]) => pubkeys],
   (profiles, pubkeys) => {
     const now = Date.now() / 1000 // Convert to seconds to match lastFetched
-    const CACHE_EXPIRATION = 5 * 60 // 5 minutes in seconds
     
     return pubkeys.filter(pubkey => {
       const entry = profiles[pubkey]
       if (!entry) return true
       
-      return (now - entry.lastFetched) > CACHE_EXPIRATION || entry.isStale
+      return (now - entry.lastFetched) > PROFILE_CACHE_EXPIRATION_SECONDS || entry.isStale
     })
   }
 )

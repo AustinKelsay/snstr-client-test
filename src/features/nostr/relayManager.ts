@@ -267,25 +267,34 @@ export class RelayManager {
   }
 
   /**
-   * Test relay connection
+   * Test relay connection with actual WebSocket
    */
   async testRelay(url: RelayUrl): Promise<boolean> {
     console.log(`🔍 Testing relay: ${url}`)
     
     try {
-      // TODO: Implement actual WebSocket connection test
-      // For now, just simulate a test
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      const startTime = Date.now()
       
-      this.updateStatus(url, {
-        connected: true,
-        connecting: false,
-        error: undefined,
-        lastConnected: new Date(),
-        attempts: 0
-      })
+      // Create a WebSocket connection test
+      const testSuccess = await this.performWebSocketTest(url)
       
-      return true
+      if (testSuccess) {
+        const latency = Date.now() - startTime
+        
+        this.updateStatus(url, {
+          connected: true,
+          connecting: false,
+          error: undefined,
+          lastConnected: new Date(),
+          attempts: 0,
+          latency
+        })
+        
+        console.log(`✅ Relay test passed for ${url} (${latency}ms)`)
+        return true
+      } else {
+        throw new Error('WebSocket connection test failed')
+      }
     } catch (error) {
       console.error(`❌ Relay test failed for ${url}:`, error)
       
@@ -297,6 +306,36 @@ export class RelayManager {
       
       return false
     }
+  }
+
+  /**
+   * Perform actual WebSocket connection test
+   */
+  private async performWebSocketTest(url: RelayUrl): Promise<boolean> {
+    return new Promise((resolve) => {
+      const timeoutId = setTimeout(() => {
+        ws.close()
+        resolve(false)
+      }, this.config.connectionTimeout)
+
+      const ws = new WebSocket(url)
+      
+      ws.onopen = () => {
+        clearTimeout(timeoutId)
+        ws.close()
+        resolve(true)
+      }
+
+      ws.onerror = () => {
+        clearTimeout(timeoutId)
+        ws.close()
+        resolve(false)
+      }
+
+      ws.onclose = () => {
+        clearTimeout(timeoutId)
+      }
+    })
   }
 
   /**

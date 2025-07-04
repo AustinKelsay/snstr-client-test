@@ -351,7 +351,7 @@ export class SubscriptionManager {
    */
   private generateSubscriptionId(): string {
     const timestamp = Date.now()
-    const random = Math.random().toString(36).substr(2, 9)
+    const random = Math.random().toString(36).slice(2, 11)
     return `sub_${timestamp}_${random}`
   }
 
@@ -380,12 +380,12 @@ export class SubscriptionManager {
 
       const mockEvent: NostrEvent = {
         id: `mock_event_${eventCount}_${Date.now()}`,
-        pubkey: 'mock_pubkey_' + Math.random().toString(36).substr(2, 9),
+        pubkey: 'mock_pubkey_' + Math.random().toString(36).slice(2, 11),
         created_at: Math.floor(Date.now() / 1000),
         kind: 1,
         tags: [],
         content: `Mock event ${eventCount} for subscription ${subscriptionId}`,
-        sig: 'mock_signature_' + Math.random().toString(36).substr(2, 20)
+        sig: 'mock_signature_' + Math.random().toString(36).slice(2, 22)
       }
 
       this.handleEvent(mockEvent, 'wss://mock-relay.com')

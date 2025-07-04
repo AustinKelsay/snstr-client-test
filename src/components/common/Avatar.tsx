@@ -6,6 +6,7 @@
 
 import { useState, useMemo } from 'react'
 import { cn } from '@/utils/cn'
+import { getInitials } from '@/utils/nostr'
 
 interface AvatarProps {
   /** Profile picture URL */
@@ -33,17 +34,7 @@ const sizeConfig = {
   xl: 'w-16 h-16 text-xl'
 }
 
-/**
- * Generate initials from display name
- */
-function getInitials(name: string): string {
-  const trimmed = name.trim()
-  if (!trimmed) return '?'
-  
-  const parts = trimmed.split(/\s+/)
-  if (parts.length === 1) return parts[0].charAt(0).toUpperCase()
-  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase()
-}
+
 
 /**
  * Generate consistent background color from string
