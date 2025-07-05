@@ -117,9 +117,10 @@ export const PostCard = memo(function PostCard({
   return (
     <article 
       className={cn(
-        'group relative border-l-2 border-border-primary bg-bg-secondary',
-        'hover:border-l-accent-primary hover:bg-bg-hover transition-all duration-200',
-        'p-4 sm:p-6',
+        'group relative bg-bg-secondary',
+        'hover:bg-bg-hover transition-all duration-200',
+        'p-4 sm:p-6 w-full overflow-hidden',
+        'border-b border-border-primary/20',
         clickable && 'cursor-pointer',
         className
       )}
@@ -133,56 +134,66 @@ export const PostCard = memo(function PostCard({
         </div>
       )}
 
-      <div className="flex gap-4">
-        {/* Avatar */}
-        <button
-          onClick={handleAuthorClick}
-          className="flex-shrink-0 group/avatar transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-accent-primary focus:ring-offset-2 focus:ring-offset-bg-secondary rounded-full"
-        >
-          <Avatar
-            src={avatarUrl}
-            name={displayName}
-            pubkey={post.pubkey}
-            size="md"
-            className="ring-1 ring-border-primary group-hover/avatar:ring-accent-primary transition-all duration-200"
-          />
-        </button>
+      <div className="space-y-3">
+        {/* Header with inline avatar */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            onClick={handleAuthorClick}
+            className="group/name flex items-center gap-2 hover:bg-bg-active px-2 py-1 -mx-2 -my-1 rounded transition-all duration-200"
+          >
+            <Avatar
+              src={avatarUrl}
+              name={displayName}
+              pubkey={post.pubkey}
+              size="sm"
+              className="ring-1 ring-border-primary group-hover/name:ring-accent-primary transition-all duration-200"
+            />
+            <span className="font-semibold text-text-primary group-hover/name:text-accent-primary transition-colors text-lg">
+              {displayName}
+            </span>
+            {(isVerified || profileDisplay.hasLightningAddress) && (
+              <div className="flex items-center gap-1">
+                {isVerified && (
+                  <span 
+                    className="text-purple-400 text-sm cursor-pointer hover:text-purple-300 transition-colors" 
+                    title={`NIP-05 Verified: ${profileDisplay.nip05 || 'Identity verified via DNS'}`}
+                  >
+                    ✓
+                  </span>
+                )}
+                {profileDisplay.hasLightningAddress && (
+                  <span 
+                    className="text-bitcoin text-sm cursor-pointer animate-pulse hover:text-orange-400 transition-colors" 
+                    title={`Lightning Address: ${profileDisplay.lightningAddress || 'Can receive Bitcoin payments'}`}
+                  >
+                    ⚡
+                  </span>
+                )}
+              </div>
+            )}
+          </button>
+          
+          <span className="text-text-quaternary font-mono text-xs">•</span>
+          
+          <time 
+            className="text-text-secondary font-mono text-xs tracking-wider flex items-center gap-1 hover:text-text-primary transition-colors" 
+            dateTime={fullTimestamp}
+            title={fullTimestamp}
+          >
+            <Clock className="w-3 h-3" />
+            {timeAgo}
+          </time>
+        </div>
 
         {/* Post Content */}
-        <div className="flex-1 min-w-0 space-y-3">
-          {/* Header */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              onClick={handleAuthorClick}
-              className="group/name flex items-center gap-2 hover:bg-bg-active px-2 py-1 -mx-2 -my-1 rounded transition-all duration-200"
-            >
-              <span className="font-semibold text-text-primary group-hover/name:text-accent-primary transition-colors text-lg">
-                {displayName}
-              </span>
-              {isVerified && (
-                <span className="text-accent-primary text-sm animate-pulse">⚡</span>
-              )}
-            </button>
-            
-            <span className="text-text-quaternary font-mono text-xs">•</span>
-            
-            <time 
-              className="text-text-secondary font-mono text-xs tracking-wider flex items-center gap-1 hover:text-text-primary transition-colors" 
-              dateTime={fullTimestamp}
-              title={fullTimestamp}
-            >
-              <Clock className="w-3 h-3" />
-              {timeAgo}
-            </time>
-          </div>
-
-          {/* Content */}
-          <div className="space-y-3">
-            <SafeContent 
-              content={post.content}
-              className="text-text-primary text-base"
-            />
-          </div>
+        <div className="space-y-3">
+          <SafeContent 
+            content={post.content}
+            className="text-text-primary text-base max-w-none"
+            expandable={true}
+            truncateAfter={280}
+            maxLines={0}
+          />
 
           {/* Interactions */}
           {showInteractions && (
@@ -279,8 +290,6 @@ export const PostCard = memo(function PostCard({
         </div>
       </div>
 
-      {/* Hover indicator */}
-      <div className="absolute top-0 right-0 w-1 h-full bg-accent-primary opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
     </article>
   )
 }) 

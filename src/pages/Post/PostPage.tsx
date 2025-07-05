@@ -12,7 +12,7 @@ import { fetchPost, fetchPostReplies } from '@/store/slices/postsSlice'
 import { fetchPostInteractions, likePost, repostEvent, optimisticLike, optimisticRepost } from '@/store/slices/interactionsSlice'
 import { selectPostById, selectPostReplies, selectIsLoadingSinglePost, selectSinglePostError } from '@/store/selectors/postsSelectors'
 import { selectPostInteractionData } from '@/store/selectors/interactionsSelectors'
-import { PostCard, PostComposer } from '@/components/post'
+import { PostCard, PostComposer, SafeContent } from '@/components/post'
 import { Avatar } from '@/components/common/Avatar'
 import Button from '@/components/ui/Button'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
@@ -176,7 +176,7 @@ export function PostPage({ className }: PostPageProps) {
         {/* Main Post */}
         <article className="bg-bg-secondary border border-border-primary rounded-sm p-6 space-y-4">
           {/* Author */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => handleAuthorClick(post.pubkey)}
               className="group flex items-center gap-3 hover:bg-bg-hover px-3 py-2 -mx-3 -my-2 rounded transition-all duration-200"
@@ -185,7 +185,7 @@ export function PostPage({ className }: PostPageProps) {
                 src={profileDisplay.avatar}
                 name={profileDisplay.name}
                 pubkey={post.pubkey}
-                size="lg"
+                size="md"
                 className="ring-1 ring-border-primary group-hover:ring-accent-primary transition-all duration-200"
               />
               <div className="text-left">
@@ -193,8 +193,25 @@ export function PostPage({ className }: PostPageProps) {
                   <span className="font-semibold text-text-primary text-lg group-hover:text-accent-primary transition-colors">
                     {profileDisplay.name}
                   </span>
-                  {profileDisplay.isVerified && (
-                    <span className="text-accent-primary text-sm animate-pulse">⚡</span>
+                  {(profileDisplay.isVerified || profileDisplay.hasLightningAddress) && (
+                    <div className="flex items-center gap-1">
+                      {profileDisplay.isVerified && (
+                        <span 
+                          className="text-purple-400 text-sm cursor-pointer hover:text-purple-300 transition-colors" 
+                          title={`NIP-05 Verified: ${profileDisplay.nip05 || 'Identity verified via DNS'}`}
+                        >
+                          ✓
+                        </span>
+                      )}
+                      {profileDisplay.hasLightningAddress && (
+                        <span 
+                          className="text-bitcoin text-sm cursor-pointer animate-pulse hover:text-orange-400 transition-colors" 
+                          title={`Lightning Address: ${profileDisplay.lightningAddress || 'Can receive Bitcoin payments'}`}
+                        >
+                          ⚡
+                        </span>
+                      )}
+                    </div>
                   )}
                 </div>
                 <div className="text-text-secondary font-mono text-sm">
@@ -206,9 +223,13 @@ export function PostPage({ className }: PostPageProps) {
 
           {/* Content */}
           <div className="space-y-4">
-            <div className="text-text-primary text-lg leading-relaxed">
-              {post.content}
-            </div>
+            <SafeContent 
+              content={post.content}
+              className="text-text-primary text-lg leading-relaxed max-w-none"
+              expandable={true}
+              truncateAfter={0}
+              maxLines={0}
+            />
 
             {/* Timestamp */}
             <div className="flex items-center gap-2 text-text-tertiary font-mono text-sm pt-2 border-t border-border-secondary">
@@ -319,7 +340,7 @@ export function PostPage({ className }: PostPageProps) {
         {isReplyComposerOpen && (
           <div className="space-y-4">
             <PostComposer
-              replyTo={post}
+              replyTo={post!}
               placeholder="Reply to this post..."
               onClose={() => setIsReplyComposerOpen(false)}
               autoFocus
@@ -336,7 +357,7 @@ export function PostPage({ className }: PostPageProps) {
           </div>
 
           {replies.length > 0 ? (
-            <div className="space-y-0 divide-y divide-border-secondary">
+            <div className="space-y-0 divide-y divide-border-primary">
               {replies.map((reply) => {
                 // Create specific interaction handlers for each reply
                 const handleReplyLike = () => {
@@ -375,7 +396,7 @@ export function PostPage({ className }: PostPageProps) {
                     onReply={handleReplyToReply}
                     onZap={handleReplyZap}
                     onAuthorClick={handleAuthorClick}
-                    className="border-none"
+                    className="!border-b-0"
                   />
                 )
               })}

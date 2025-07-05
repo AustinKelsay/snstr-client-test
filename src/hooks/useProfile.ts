@@ -273,7 +273,7 @@ export function useProfiles(
  * Hook for getting profile display information with fallbacks
  */
 export function useProfileDisplay(pubkey: PublicKey | null) {
-  const { profile, displayName, avatarUrl, verification } = useProfile(pubkey, {
+  const { profile, displayName, avatarUrl, verification, lightning } = useProfile(pubkey, {
     autoFetch: true,
     enableBatching: true
   })
@@ -283,9 +283,11 @@ export function useProfileDisplay(pubkey: PublicKey | null) {
     avatar: avatarUrl,
     isVerified: verification.isVerified,
     nip05: verification.nip05,
+    hasLightningAddress: lightning.hasLightning,
+    lightningAddress: lightning.lud16 || lightning.lud06,
     shortPubkey: pubkey ? `${pubkey.slice(0, 8)}...${pubkey.slice(-4)}` : '',
     hasProfile: Boolean(profile)
-  }), [displayName, avatarUrl, verification, pubkey, profile])
+  }), [displayName, avatarUrl, verification, lightning, pubkey, profile])
 }
 
 /**

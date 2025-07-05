@@ -1,7 +1,7 @@
 /**
  * @fileoverview PostList component for displaying feeds of posts
  * Handles rendering lists of posts with infinite scroll, loading states, and error handling
- * Supports both timeline and following feeds with optimized rendering
+ * Optimized for both timeline and following feeds with responsive design for large messages
  */
 
 import { memo, useCallback, useEffect, useRef } from 'react'
@@ -44,7 +44,7 @@ interface PostListProps {
 /**
  * PostList component displays a list of posts with infinite scroll
  * Optimizes rendering performance with memoization and efficient scroll detection
- * Provides loading states and error handling for better UX
+ * Enhanced to handle large messages with proper overflow and responsive design
  */
 export const PostList = memo(function PostList({
   posts,
@@ -112,16 +112,16 @@ export const PostList = memo(function PostList({
   // Show error state
   if (error && posts.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 px-4">
-        <div className="text-red-400 text-lg font-medium mb-2">
+      <div className="flex flex-col items-center justify-center py-12 px-4 space-y-4">
+        <div className="text-error text-lg font-medium text-center">
           Failed to load posts
         </div>
-        <div className="text-gray-500 text-center mb-4">
+        <div className="text-text-secondary text-center text-sm max-w-md">
           {error}
         </div>
         <button
           onClick={handleRetry}
-          className="px-4 py-2 bg-accent-primary text-black rounded-lg hover:bg-accent-primary/90 transition-colors"
+          className="px-4 py-2 bg-accent-primary text-bg-primary rounded-sm hover:bg-accent-secondary transition-colors font-mono text-sm"
         >
           Try Again
         </button>
@@ -142,8 +142,8 @@ export const PostList = memo(function PostList({
 
   return (
     <div className={className}>
-      {/* Posts list */}
-      <div className="divide-y divide-gray-800">
+      {/* Posts list with subtle dividers */}
+      <div className="space-y-0 divide-y divide-border-primary overflow-hidden">
         {posts.map((post) => (
           <PostCard
             key={post.id}
@@ -154,6 +154,7 @@ export const PostList = memo(function PostList({
             onReply={onReply}
             onRepost={onRepost}
             onAuthorClick={onAuthorClick}
+            className="!border-b-0"
           />
         ))}
       </div>
@@ -165,9 +166,14 @@ export const PostList = memo(function PostList({
           className="flex items-center justify-center py-8"
         >
           {isLoading ? (
-            <LoadingSpinner size="md" />
+            <div className="flex items-center gap-3">
+              <LoadingSpinner size="sm" />
+              <span className="text-text-secondary text-sm font-mono">
+                Loading more posts...
+              </span>
+            </div>
           ) : (
-            <div className="text-gray-500 text-sm">
+            <div className="text-text-secondary text-sm font-mono">
               Scroll to load more posts
             </div>
           )}
@@ -177,21 +183,23 @@ export const PostList = memo(function PostList({
       {/* End of feed indicator */}
       {!hasMore && posts.length > 0 && (
         <div className="flex items-center justify-center py-8">
-          <div className="text-gray-500 text-sm">
-            You've reached the end
+          <div className="flex items-center gap-2 text-text-secondary text-sm font-mono">
+            <div className="w-4 h-px bg-border-secondary" />
+            <span>End of feed</span>
+            <div className="w-4 h-px bg-border-secondary" />
           </div>
         </div>
       )}
 
       {/* Error state for additional posts */}
       {error && posts.length > 0 && (
-        <div className="flex flex-col items-center justify-center py-8 px-4">
-          <div className="text-red-400 text-sm mb-2">
+        <div className="flex flex-col items-center justify-center py-8 px-4 space-y-2">
+          <div className="text-error text-sm font-mono">
             Failed to load more posts
           </div>
           <button
             onClick={handleRetry}
-            className="text-accent-primary hover:text-accent-primary/80 text-sm underline"
+            className="text-accent-primary hover:text-accent-secondary text-sm underline font-mono transition-colors"
           >
             Try again
           </button>

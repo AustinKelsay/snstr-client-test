@@ -5,4 +5,5 @@
 
 export { PostCard } from './PostCard'
 export { PostComposer } from './PostComposer'
-export { PostList } from './PostList' 
+export { PostList } from './PostList'
+export { SafeContent } from './SafeContent' 
