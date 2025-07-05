@@ -191,7 +191,7 @@ export function useProfiles(
   const {
     autoFetch = true,
     subscribe = false,
-    batchSize = 20
+    batchSize = 100
   } = options
 
   const dispatch = useAppDispatch()

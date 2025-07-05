@@ -4,14 +4,15 @@
  * Supports both current user and other user profiles with appropriate action states
  */
 
-import { memo, useCallback } from 'react'
-import { Settings, UserPlus, UserMinus, MessageCircle, MoreHorizontal, CheckCircle, Link as LinkIcon, Calendar, Zap, Globe, Shield } from 'lucide-react'
+import { memo, useCallback, useState } from 'react'
+import { Settings, UserPlus, UserMinus, MessageCircle, MoreHorizontal, CheckCircle, Link as LinkIcon, Calendar, Zap, Globe, Shield, Copy, Check } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import type { PublicKey } from '@/types'
 import type { UserProfile } from '@/types/auth'
 import Button from '@/components/ui/Button'
 import { Avatar } from '@/components/common/Avatar'
 import { cn } from '@/utils/cn'
+import { pubkeyToNpub, formatNip19ForDisplay } from '@/utils/nip19'
 
 interface ProfileHeaderProps {
   /** User profile data */
@@ -60,9 +61,27 @@ export const ProfileHeader = memo(function ProfileHeader({
   className,
 }: ProfileHeaderProps) {
   
+  // State for copy functionality
+  const [copiedField, setCopiedField] = useState<string | null>(null)
+
   // Format display name
   const displayName = profile.display_name || profile.name || `${profile.pubkey.slice(0, 8)}...${profile.pubkey.slice(-4)}`
   const username = profile.name || `${profile.pubkey.slice(0, 8)}...${profile.pubkey.slice(-4)}`
+
+  // Generate NIP-19 identifiers for display
+  const npubKey = pubkeyToNpub(profile.pubkey)
+  const displayNpub = formatNip19ForDisplay(npubKey, { startChars: 8, endChars: 6, showPrefix: false })
+
+  // Copy to clipboard functionality
+  const handleCopy = useCallback(async (text: string, field: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedField(field)
+      setTimeout(() => setCopiedField(null), 2000)
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error)
+    }
+  }, [])
 
   // Format join date (using created_at if available)
   const joinDate = new Date() // TODO: Get actual join date from profile metadata
@@ -231,9 +250,20 @@ export const ProfileHeader = memo(function ProfileHeader({
             <div className="flex items-center gap-2 text-text-secondary">
               <span className="font-mono text-sm">@{username}</span>
               <span className="text-text-quaternary">•</span>
-              <span className="font-mono text-xs text-text-tertiary">
-                {profile.pubkey.slice(0, 8)}...{profile.pubkey.slice(-8)}
-              </span>
+              <button
+                onClick={() => handleCopy(npubKey, 'npub')}
+                className="group flex items-center gap-1 hover:bg-bg-active px-2 py-1 -mx-2 -my-1 rounded transition-all duration-200"
+                title={`Copy ${npubKey}`}
+              >
+                <span className="font-mono text-xs text-text-tertiary group-hover:text-accent-primary transition-colors">
+                  {displayNpub}
+                </span>
+                {copiedField === 'npub' ? (
+                  <Check className="w-3 h-3 text-accent-primary" />
+                ) : (
+                  <Copy className="w-3 h-3 opacity-0 group-hover:opacity-100 text-text-secondary group-hover:text-accent-primary transition-all duration-200" />
+                )}
+              </button>
             </div>
             
             {profile.nip05 && (

@@ -114,7 +114,7 @@ export const loadTimelinePosts = createAsyncThunk(
 
 /**
  * Load timeline posts with interaction counts
- * Fetches posts and then batch fetches their interaction counts
+ * Fetches posts and then batch fetches their interaction counts and author profiles
  */
 export const loadTimelineWithInteractions = createAsyncThunk(
   'posts/loadTimelineWithInteractions',
@@ -126,10 +126,21 @@ export const loadTimelineWithInteractions = createAsyncThunk(
       // Extract post IDs for batch interaction fetching
       const postIds = timelineResult.posts.map(post => post.id)
       
-      // Batch fetch interaction counts if we have posts
+      // Extract unique author pubkeys for batch profile fetching
+      const authorPubkeys = Array.from(new Set(timelineResult.posts.map(post => post.pubkey)))
+      
+      // Batch fetch interaction counts and profiles in parallel
       if (postIds.length > 0) {
-        // Don't await this - let it run in background to update counts
+        // Don't await these - let them run in background to update counts and profiles
         dispatch(fetchBatchPostInteractions(postIds))
+      }
+      
+      // Aggressively fetch profiles for all authors immediately
+      if (authorPubkeys.length > 0) {
+        console.log(`🚀 Proactively fetching ${authorPubkeys.length} author profiles for timeline`)
+        // Import fetchProfilesBatch dynamically to avoid circular imports
+        const { fetchProfilesBatch } = await import('./profilesSlice')
+        dispatch(fetchProfilesBatch(authorPubkeys))
       }
       
       return timelineResult
@@ -198,7 +209,7 @@ export const loadFollowingPosts = createAsyncThunk(
 
 /**
  * Load following posts with interaction counts
- * Fetches posts from followed users and then batch fetches their interaction counts
+ * Fetches posts from followed users and then batch fetches their interaction counts and author profiles
  */
 export const loadFollowingWithInteractions = createAsyncThunk(
   'posts/loadFollowingWithInteractions',
@@ -210,10 +221,21 @@ export const loadFollowingWithInteractions = createAsyncThunk(
       // Extract post IDs for batch interaction fetching
       const postIds = followingResult.posts.map(post => post.id)
       
-      // Batch fetch interaction counts if we have posts
+      // Extract unique author pubkeys for batch profile fetching
+      const authorPubkeys = Array.from(new Set(followingResult.posts.map(post => post.pubkey)))
+      
+      // Batch fetch interaction counts and profiles in parallel
       if (postIds.length > 0) {
-        // Don't await this - let it run in background to update counts
+        // Don't await these - let them run in background to update counts and profiles
         dispatch(fetchBatchPostInteractions(postIds))
+      }
+      
+      // Aggressively fetch profiles for all authors immediately
+      if (authorPubkeys.length > 0) {
+        console.log(`🚀 Proactively fetching ${authorPubkeys.length} author profiles for following feed`)
+        // Import fetchProfilesBatch dynamically to avoid circular imports
+        const { fetchProfilesBatch } = await import('./profilesSlice')
+        dispatch(fetchProfilesBatch(authorPubkeys))
       }
       
       return followingResult

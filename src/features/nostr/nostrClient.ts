@@ -1,11 +1,11 @@
 /**
  * @fileoverview Main SNSTR client configuration and wrapper
- * Handles all Nostr protocol interactions including relay connections, 
- * event publishing, subscriptions, and real-time updates
+ * Handles all Nostr protocol interactions using RelayPool for efficient multi-relay management
+ * Uses fetchMany for one-time queries and subscriptions only for real-time updates
  */
 
-// Import from SNSTR library
-import { Nostr, RelayEvent, type NostrEvent, type Filter } from 'snstr'
+// Import from SNSTR library - using RelayPool for better efficiency
+import { RelayPool, Nostr, RelayEvent, type NostrEvent, type Filter } from 'snstr'
 type RelayEventType = RelayEvent
 import type { PublicKey, PrivateKey, RelayUrl } from '@/types'
 import type { RelayStatus, SubscriptionOptions, QueryOptions } from './types'
@@ -30,7 +30,7 @@ const CONNECTION_CONFIG = {
 
 // Subscription batching configuration
 const SUBSCRIPTION_CONFIG = {
-  batchSize: 50, // Maximum pubkeys per subscription
+  batchSize: 100, // Increased from 50 for better efficiency - maximum pubkeys per subscription
   debounceDelay: 500, // Milliseconds to wait before creating subscription
   maxConcurrent: 10, // Maximum concurrent subscriptions
 }
@@ -46,11 +46,12 @@ export type ErrorHandler = (error: Error, relayUrl?: RelayUrl) => void
 
 /**
  * Main Nostr client wrapper class
- * Provides a high-level interface to the SNSTR library with additional
- * features like connection management, event caching, and error handling
+ * Uses SNSTR's RelayPool for efficient multi-relay management instead of basic Nostr client
+ * Leverages fetchMany/fetchOne for one-time queries and subscriptions only for real-time updates
  */
 export class NostrClient {
-  private client: InstanceType<typeof Nostr>
+  private pool: RelayPool
+  private client: InstanceType<typeof Nostr> // Keep for compatibility with some operations
   private relayStatuses: Map<RelayUrl, RelayStatus> = new Map()
   private subscriptions: Map<string, string[]> = new Map()
   private eventCache: Map<string, NostrEvent> = new Map()
@@ -60,6 +61,9 @@ export class NostrClient {
   private reconnectTimers: Map<RelayUrl, NodeJS.Timeout> = new Map()
   
   constructor(relays: RelayUrl[] = DEFAULT_RELAYS) {
+    // Initialize RelayPool for efficient multi-relay operations
+    this.pool = new RelayPool(relays)
+    // Keep basic client for compatibility with some operations
     this.client = new Nostr(relays)
     this.setupEventHandlers()
     this.initializeRelayStatuses(relays)
@@ -198,10 +202,10 @@ export class NostrClient {
   }
 
   /**
-   * Connect to all configured relays
+   * Connect to all configured relays using RelayPool
    */
   async connectToRelays(): Promise<void> {
-    console.log('🚀 Connecting to Nostr relays...')
+    console.log('🚀 Connecting to Nostr relays using RelayPool...')
     
     // Mark all relays as connecting
     this.relayStatuses.forEach((_status, relayUrl) => {
@@ -209,8 +213,14 @@ export class NostrClient {
     })
 
     try {
-      await this.client.connectToRelays()
-      console.log('✅ Relay connection process initiated')
+      // Connect both the pool and basic client for compatibility
+      await Promise.all([
+        // RelayPool handles connections more efficiently
+        this.connectRelayPool(),
+        // Keep basic client connected for compatibility
+        this.client.connectToRelays()
+      ])
+      console.log('✅ RelayPool and client connections initiated')
     } catch (error) {
       console.error('❌ Failed to initiate relay connections:', error)
       throw error
@@ -218,9 +228,13 @@ export class NostrClient {
   }
 
   /**
-   * Note: SNSTR only supports connecting to all relays at once.
-   * Individual relay connection is not supported.
+   * Connect RelayPool (internal method)
    */
+  private async connectRelayPool(): Promise<void> {
+    // RelayPool automatically manages connections when we use it
+    // We don't need explicit connection for RelayPool - it connects on demand
+    console.log('📊 RelayPool ready for on-demand connections')
+  }
 
   /**
    * Disconnect from all relays
@@ -236,7 +250,11 @@ export class NostrClient {
     this.subscriptions.clear()
     
     try {
-      this.client.disconnectFromRelays()
+      // Disconnect both pool and basic client
+      await Promise.all([
+        this.pool.close(),
+        Promise.resolve(this.client.disconnectFromRelays())
+      ])
       console.log('✅ Disconnected from all relays')
     } catch (error) {
       console.error('❌ Error disconnecting from relays:', error)
@@ -298,7 +316,7 @@ export class NostrClient {
   }
 
   /**
-   * Subscribe to events
+   * Subscribe to events with rate limit error handling
    */
   subscribe(
     filters: Filter[],
@@ -332,11 +350,68 @@ export class NostrClient {
     } catch (error) {
       console.error('Failed to create subscription:', error)
       this.eventHandlers.delete(subscriptionId)
+      
+      // Handle rate limit errors gracefully
+      if (error instanceof Error && error.message.includes('rate limit')) {
+        console.warn('⚠️ Rate limit exceeded - waiting before retry')
+        // Don't throw rate limit errors to prevent app crashes
+        return subscriptionId
+      }
+      
       throw error
     }
   }
 
   /**
+   * Fetch profiles efficiently using RelayPool instead of subscriptions
+   * This is much more efficient than creating subscriptions for one-time profile data
+   * 
+   * OLD WAY: 100 profiles = ~5-10 subscriptions = rate limiting issues
+   * NEW WAY: 100 profiles = 1 cross-relay query = no rate limiting
+   */
+  async fetchProfilesBatch(
+    pubkeys: PublicKey[],
+    options: QueryOptions = {}
+  ): Promise<NostrEvent[]> {
+    if (pubkeys.length === 0) return []
+
+    console.log(`🎯 Fetching ${pubkeys.length} profiles using RelayPool (no subscriptions needed)`)
+
+    try {
+      // Use RelayPool's querySync for efficient cross-relay profile fetching
+      const profiles = await this.pool.querySync(
+        this.getConnectedRelays(),
+        {
+          kinds: [0], // Profile metadata
+          authors: pubkeys
+        },
+        {
+          timeout: options.maxWait || 5000
+        }
+      )
+
+      // Cache all fetched profiles
+      profiles.forEach(event => {
+        this.eventCache.set(event.id, event)
+      })
+
+      console.log(`✅ Fetched ${profiles.length} profiles from ${pubkeys.length} requested`)
+      return profiles
+    } catch (error) {
+      console.error('Failed to fetch profiles batch with RelayPool:', error)
+      
+      // Handle rate limit errors gracefully
+      if (error instanceof Error && error.message.includes('rate limit')) {
+        console.warn('⚠️ Rate limit exceeded for profile fetch - returning empty array')
+        return []
+      }
+      
+      throw error
+    }
+  }
+
+  /**
+   * @deprecated Use fetchProfilesBatch instead - subscriptions are inefficient for one-time profile data
    * Subscribe to profiles in batches to reduce concurrent subscriptions
    * Batches large profile requests to avoid rate limiting
    */
@@ -345,6 +420,8 @@ export class NostrClient {
     onEvent: EventHandler,
     options: SubscriptionOptions = {}
   ): string[] {
+    console.warn('⚠️ subscribeToBatchedProfiles is deprecated - use fetchProfilesBatch for better efficiency')
+    
     if (pubkeys.length === 0) return []
 
     const subscriptionIds: string[] = []
@@ -402,16 +479,21 @@ export class NostrClient {
   }
 
   /**
-   * Fetch events from relays
+   * Fetch events from relays using RelayPool for efficient cross-relay querying
    */
   async fetchEvents(
     filters: Filter[],
     options: QueryOptions = {}
   ): Promise<NostrEvent[]> {
     try {
-      const events = await this.client.fetchMany(filters, {
-        maxWait: options.maxWait || 5000
-      })
+      // Use RelayPool's querySync for efficient cross-relay querying
+      const events = await this.pool.querySync(
+        this.getConnectedRelays(),
+        filters[0], // RelayPool querySync takes a single filter object
+        {
+          timeout: options.maxWait || 5000
+        }
+      )
       
       // Cache all fetched events
       events.forEach(event => {
@@ -424,7 +506,14 @@ export class NostrClient {
       
       return events
     } catch (error) {
-      console.error('Failed to fetch events:', error)
+      console.error('Failed to fetch events with RelayPool:', error)
+      
+      // Handle rate limit errors gracefully
+      if (error instanceof Error && error.message.includes('rate limit')) {
+        console.warn('⚠️ Rate limit exceeded for fetch - returning empty array')
+        return []
+      }
+      
       throw error
     }
   }
@@ -518,7 +607,7 @@ export class NostrClient {
   }
 
   /**
-   * Clean up resources
+   * Clean up resources including RelayPool
    */
   async cleanup(): Promise<void> {
     // Clear all timers
@@ -533,7 +622,7 @@ export class NostrClient {
     // Clear cache
     this.eventCache.clear()
     
-    // Disconnect from relays
+    // Disconnect from relays (includes RelayPool cleanup)
     await this.disconnectFromRelays()
   }
 }

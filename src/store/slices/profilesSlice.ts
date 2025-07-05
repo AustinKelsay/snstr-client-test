@@ -60,13 +60,6 @@ const initialState: ProfilesState = {
   error: null,
 }
 
-
-
-/**
- * Maximum batch size for profile requests
- */
-const MAX_BATCH_SIZE = 20
-
 /**
  * Maximum fetch attempts before giving up
  */
@@ -245,13 +238,20 @@ export const fetchProfile = createAsyncThunk(
       }
     } catch (error) {
       console.error(`Failed to fetch profile for ${pubkey}:`, error)
+      
+      // Handle rate limit errors gracefully
+      if (error instanceof Error && error.message.includes('rate limit')) {
+        console.warn(`⚠️ Rate limit exceeded for profile ${pubkey} - will retry later`)
+        return rejectWithValue('Rate limit exceeded - will retry later')
+      }
+      
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch profile')
     }
   }
 )
 
 /**
- * Batch fetch multiple profiles efficiently
+ * Batch fetch multiple profiles efficiently using RelayPool
  */
 export const fetchProfilesBatch = createAsyncThunk(
   'profiles/fetchProfilesBatch',
@@ -269,43 +269,34 @@ export const fetchProfilesBatch = createAsyncThunk(
         return { profiles: [], timestamp: Date.now() / 1000 }
       }
 
-      // Batch fetch with size limit
-      const batches = []
-      for (let i = 0; i < needsFetch.length; i += MAX_BATCH_SIZE) {
-        batches.push(needsFetch.slice(i, i + MAX_BATCH_SIZE))
-      }
+      console.log(`🎯 Using RelayPool to fetch ${needsFetch.length} profiles efficiently (no subscriptions)`)
 
+      // Use NostrClient's efficient fetchProfilesBatch method (uses RelayPool querySync)
+      const events = await nostrClient.fetchProfilesBatch(needsFetch, {
+        maxWait: 5000,
+        deduplicate: true
+      })
+
+      // Group events by pubkey and get latest for each
+      const eventsByPubkey = new Map<PublicKey, NostrEvent>()
+      
+      events.forEach(event => {
+        const existing = eventsByPubkey.get(event.pubkey)
+        if (!existing || event.created_at > existing.created_at) {
+          eventsByPubkey.set(event.pubkey, event)
+        }
+      })
+
+      // Convert events to profiles
       const allProfiles: Array<{ pubkey: PublicKey; profile: UserProfile }> = []
+      eventsByPubkey.forEach((event, pubkey) => {
+        const profile = convertEventToProfile(event)
+        if (profile) {
+          allProfiles.push({ pubkey, profile })
+        }
+      })
 
-      for (const batch of batches) {
-        // Fetch latest kind 0 events for this batch
-        const events = await nostrClient.fetchEvents([{
-          kinds: [0],
-          authors: batch,
-          limit: batch.length
-        }], {
-          maxWait: 5000,
-          deduplicate: true
-        })
-
-        // Group events by pubkey and get latest for each
-        const eventsByPubkey = new Map<PublicKey, NostrEvent>()
-        
-        events.forEach(event => {
-          const existing = eventsByPubkey.get(event.pubkey)
-          if (!existing || event.created_at > existing.created_at) {
-            eventsByPubkey.set(event.pubkey, event)
-          }
-        })
-
-        // Convert events to profiles
-        eventsByPubkey.forEach((event, pubkey) => {
-          const profile = convertEventToProfile(event)
-          if (profile) {
-            allProfiles.push({ pubkey, profile })
-          }
-        })
-      }
+      console.log(`✅ RelayPool fetched ${allProfiles.length} profiles from ${needsFetch.length} requested`)
 
       return {
         profiles: allProfiles,
@@ -313,6 +304,18 @@ export const fetchProfilesBatch = createAsyncThunk(
       }
     } catch (error) {
       console.error('Failed to fetch profiles batch:', error)
+      
+      // Handle rate limit errors gracefully
+      if (error instanceof Error && error.message.includes('rate limit')) {
+        console.warn('⚠️ Rate limit exceeded for profile batch - returning partial results')
+        // Return empty result but don't fail completely to prevent UI crashes
+        return {
+          profiles: [],
+          timestamp: Date.now() / 1000,
+          isRateLimited: true
+        }
+      }
+      
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch profiles')
     }
   }

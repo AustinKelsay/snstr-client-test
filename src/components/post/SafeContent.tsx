@@ -1,11 +1,20 @@
 /**
  * @fileoverview SafeContent component for rendering user content without XSS vulnerabilities
- * Handles hashtags, mentions, URLs, and proper text formatting for large messages
+ * Handles hashtags, mentions, URLs, emoji shortcodes, NIP-19 entities, and proper text formatting for large messages
  * Provides expandable content for long posts with proper line breaks and paragraphs
  */
 
 import React, { memo, useState } from 'react'
 import { cn } from '@/utils/cn'
+import { 
+  isNip19Entity, 
+  getEntityType, 
+  formatNip19ForDisplay, 
+  extractPubkey, 
+  extractEventId,
+  getEntityDescription 
+} from '@/utils/nip19'
+import { shortcodeToEmoji, hasEmojiMapping } from '@/utils/emoji'
 
 interface SafeContentProps {
   /** The content to render safely */
@@ -22,6 +31,12 @@ interface SafeContentProps {
   onMentionClick?: (mention: string) => void
   /** Callback fired when a hashtag is clicked */
   onHashtagClick?: (hashtag: string) => void
+  /** Callback fired when a NIP-19 entity is clicked */
+  onNip19Click?: (entity: string, type: 'pubkey' | 'event') => void
+  /** Callback fired when an emoji shortcode is clicked */
+  onEmojiClick?: (emojiName: string) => void
+  /** Whether to convert emoji shortcodes to Unicode emojis */
+  convertEmojis?: boolean
 }
 
 /**
@@ -36,7 +51,10 @@ export const SafeContent = memo(function SafeContent({
   expandable = true,
   truncateAfter = 500,
   onMentionClick,
-  onHashtagClick
+  onHashtagClick,
+  onNip19Click,
+  onEmojiClick,
+  convertEmojis = true
 }: SafeContentProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   
@@ -54,8 +72,8 @@ export const SafeContent = memo(function SafeContent({
    * Renders a single paragraph with inline formatting
    */
   const renderParagraph = (paragraph: string, paragraphIndex: number) => {
-    // Pattern to match hashtags, mentions, and URLs
-    const pattern = /(#[\w]+|@[\w]+|https?:\/\/[^\s]+)/g
+    // Pattern to match hashtags, mentions, URLs, emoji shortcodes, and NIP-19 entities
+    const pattern = /(#[\w\-_]+|@[\w\-_]+|:[a-zA-Z0-9_\-+]+:|https?:\/\/[^\s]+|nostr:[a-z0-9]+1[a-z0-9]+|n(?:pub|sec|note|profile|event|addr|relay)1[a-z0-9]+)/g
     const parts = paragraph.split(pattern)
     
     return (
@@ -83,8 +101,74 @@ export const SafeContent = memo(function SafeContent({
   const renderInlineContent = (part: string, key: string) => {
     if (!part) return null
 
-    // Check if this part matches any of our patterns
-    if (part.startsWith('#') && /^#[\w]+$/.test(part)) {
+    // Check for NIP-19 entities first (most specific)
+    const nip19Entity = part.replace(/^nostr:/, '') // Remove nostr: prefix if present
+    if (isNip19Entity(nip19Entity)) {
+      const entityType = getEntityType(nip19Entity)
+      const description = getEntityDescription(nip19Entity)
+      const displayText = formatNip19ForDisplay(nip19Entity, { 
+        startChars: 8, 
+        endChars: 6, 
+        showPrefix: true 
+      })
+      
+      // Determine click handler type
+      let clickType: 'pubkey' | 'event' = 'pubkey'
+      if (entityType === 'note' || entityType === 'nevent') {
+        clickType = 'event'
+      } else if (extractEventId(nip19Entity)) {
+        clickType = 'event'
+      } else if (extractPubkey(nip19Entity)) {
+        clickType = 'pubkey'
+      }
+
+      return (
+        <span
+          key={key}
+          className="text-purple-400 hover:text-purple-300 font-medium transition-colors cursor-pointer inline-block border border-purple-400/20 hover:border-purple-300/40 rounded px-1 py-0.5 bg-purple-400/5 hover:bg-purple-300/10"
+          title={`${description}: ${nip19Entity}`}
+          onClick={(e) => {
+            e.stopPropagation()
+            if (onNip19Click) {
+              onNip19Click(nip19Entity, clickType)
+            }
+          }}
+        >
+          {displayText}
+        </span>
+      )
+    }
+
+    // Check for emoji shortcodes
+    if (part.startsWith(':') && part.endsWith(':') && /^:[a-zA-Z0-9_\-+]+:$/.test(part)) {
+      // Emoji shortcode (like :ohayo:, :heart:, etc.)
+      const emojiName = part.slice(1, -1) // Remove colons
+      const hasMapping = hasEmojiMapping(emojiName)
+      const displayText = convertEmojis && hasMapping ? shortcodeToEmoji(emojiName) : part
+      
+      return (
+        <span
+          key={key}
+          className={cn(
+            "font-medium transition-colors inline-block rounded px-1 py-0.5 text-sm",
+            hasMapping 
+              ? "text-yellow-400 hover:text-yellow-300 bg-yellow-400/10 hover:bg-yellow-300/20 border border-yellow-400/20"
+              : "text-text-secondary bg-bg-tertiary border border-border-secondary",
+            onEmojiClick ? "cursor-pointer" : "cursor-default"
+          )}
+          title={`Emoji: ${emojiName}${hasMapping ? ` (${shortcodeToEmoji(emojiName)})` : ''}`}
+          onClick={onEmojiClick ? (e) => {
+            e.stopPropagation()
+            onEmojiClick(emojiName)
+          } : undefined}
+        >
+          {displayText}
+        </span>
+      )
+    }
+
+    // Check if this part matches any of our other patterns
+    if (part.startsWith('#') && /^#[\w\-_]+$/.test(part)) {
       // Hashtag
       return (
         <span
@@ -100,7 +184,7 @@ export const SafeContent = memo(function SafeContent({
           {part}
         </span>
       )
-    } else if (part.startsWith('@') && /^@[\w]+$/.test(part)) {
+    } else if (part.startsWith('@') && /^@[\w\-_]+$/.test(part)) {
       // Mention
       return (
         <span

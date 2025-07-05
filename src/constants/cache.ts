@@ -6,7 +6,7 @@
 /**
  * Profile cache expiration time in seconds
  */
-export const PROFILE_CACHE_EXPIRATION_SECONDS = 5 * 60 // 5 minutes
+export const PROFILE_CACHE_EXPIRATION_SECONDS = 30 * 60 // 30 minutes - increased from 5 minutes
 
 /**
  * Profile cache expiration time in milliseconds

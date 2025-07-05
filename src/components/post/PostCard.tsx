@@ -4,15 +4,16 @@
  * Provides a Twitter-like post display with like, zap, reply, and repost functionality
  */
 
-import React, { memo, useCallback } from 'react'
+import React, { memo, useCallback, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
-import { Heart, MessageCircle, Repeat2, Zap, MoreHorizontal, Clock } from 'lucide-react'
+import { Heart, MessageCircle, Repeat2, Zap, MoreHorizontal, Clock, Copy, Check } from 'lucide-react'
 import type { Post, PublicKey } from '@/types'
 import Button from '@/components/ui/Button'
 import { Avatar } from '@/components/common/Avatar'
 import { SafeContent } from './SafeContent'
 import { cn } from '@/utils/cn'
 import { useProfileDisplay } from '@/hooks/useProfile'
+import { eventIdToNote, formatNip19ForDisplay, extractPubkey, extractEventId, isNip19Entity } from '@/utils/nip19'
 
 interface PostCardProps {
   /** The post data to display */
@@ -54,9 +55,63 @@ export const PostCard = memo(function PostCard({
   showInteractions = true,
   clickable = true,
 }: PostCardProps) {
+  // State for copy functionality
+  const [copiedField, setCopiedField] = useState<string | null>(null)
+
   // Format timestamp for display
   const timeAgo = formatDistanceToNow(new Date(post.created_at * 1000), { addSuffix: true })
   const fullTimestamp = new Date(post.created_at * 1000).toISOString()
+
+  // Generate NIP-19 note identifier
+  const noteId = eventIdToNote(post.id)
+  const displayNote = formatNip19ForDisplay(noteId, { startChars: 8, endChars: 6, showPrefix: false })
+
+  // Copy to clipboard functionality
+  const handleCopy = useCallback(async (text: string, field: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedField(field)
+      setTimeout(() => setCopiedField(null), 2000)
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error)
+    }
+  }, [])
+
+  // Handle mention click (for NIP-19 entities)
+  const handleMentionClick = useCallback((mention: string) => {
+    if (isNip19Entity(mention)) {
+      const pubkey = extractPubkey(mention)
+      if (pubkey && onAuthorClick) {
+        onAuthorClick(pubkey)
+      }
+    } else {
+      // Traditional @username mention - log for now
+      console.log('Username mention clicked:', mention)
+    }
+  }, [onAuthorClick])
+
+  // Handle NIP-19 entity clicks
+  const handleNip19Click = useCallback((entity: string, type: 'pubkey' | 'event') => {
+    if (type === 'pubkey') {
+      const pubkey = extractPubkey(entity)
+      if (pubkey && onAuthorClick) {
+        onAuthorClick(pubkey)
+      }
+    } else if (type === 'event') {
+      const eventId = extractEventId(entity)
+      if (eventId && onPostClick) {
+        // Create a minimal post object for navigation
+        const eventPost = { 
+          id: eventId, 
+          content: `Referenced event: ${entity}`,
+          pubkey: '',
+          created_at: 0
+        } as Post
+        onPostClick(eventPost)
+      }
+    }
+  }, [onAuthorClick, onPostClick])
 
   // Handle post click
   const handlePostClick = useCallback((e: React.MouseEvent) => {
@@ -175,14 +230,31 @@ export const PostCard = memo(function PostCard({
           
           <span className="text-text-quaternary font-mono text-xs">•</span>
           
-          <time 
-            className="text-text-secondary font-mono text-xs tracking-wider flex items-center gap-1 hover:text-text-primary transition-colors" 
-            dateTime={fullTimestamp}
-            title={fullTimestamp}
-          >
-            <Clock className="w-3 h-3" />
-            {timeAgo}
-          </time>
+          <div className="flex items-center gap-2">
+            <time 
+              className="text-text-secondary font-mono text-xs tracking-wider flex items-center gap-1 hover:text-text-primary transition-colors" 
+              dateTime={fullTimestamp}
+              title={fullTimestamp}
+            >
+              <Clock className="w-3 h-3" />
+              {timeAgo}
+            </time>
+            
+            <button
+              onClick={(e) => handleCopy(noteId, 'note', e)}
+              className="group flex items-center gap-1 hover:bg-bg-active px-1 py-0.5 -mx-1 -my-0.5 rounded transition-all duration-200"
+              title={`Copy note: ${noteId}`}
+            >
+              <span className="font-mono text-xs text-text-quaternary group-hover:text-accent-primary transition-colors">
+                {displayNote}
+              </span>
+              {copiedField === 'note' ? (
+                <Check className="w-3 h-3 text-accent-primary" />
+              ) : (
+                <Copy className="w-3 h-3 opacity-0 group-hover:opacity-100 text-text-secondary group-hover:text-accent-primary transition-all duration-200" />
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Post Content */}
@@ -193,18 +265,16 @@ export const PostCard = memo(function PostCard({
             expandable={true}
             truncateAfter={280}
             maxLines={0}
-            onMentionClick={(mention) => {
-              // For now, use the mention as a username to navigate
-              // TODO: In the future, we could resolve mentions to actual pubkeys
-              if (onAuthorClick) {
-                // This is a simplified approach - in a real app you'd want to resolve the mention to a pubkey
-                console.log('Mention clicked:', mention)
-                // For now, just log it since we need a pubkey, not a username
-              }
-            }}
+            convertEmojis={true}
+            onMentionClick={handleMentionClick}
+            onNip19Click={handleNip19Click}
             onHashtagClick={(hashtag) => {
               // TODO: Implement hashtag navigation/search
               console.log('Hashtag clicked:', hashtag)
+            }}
+            onEmojiClick={(emojiName) => {
+              // TODO: Implement emoji picker or custom emoji handling
+              console.log('Emoji clicked:', emojiName)
             }}
           />
 

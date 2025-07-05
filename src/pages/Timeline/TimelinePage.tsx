@@ -39,11 +39,11 @@ export function TimelinePage({ className }: TimelinePageProps) {
   const followedPubkeys = useAppSelector(selectFollowedPubkeys)
   const isFetchingContacts = useAppSelector(selectIsFetchingContacts)
 
-  // Automatically load profiles for all posts in timeline
+  // Automatically load profiles for all posts in timeline with higher limits
   useTimelineProfiles(posts, {
     autoFetch: true,
     subscribe: true,
-    maxProfiles: 50
+    maxProfiles: 200 // Increased from 50 to handle larger timelines
   })
 
   // Fetch user contacts when authenticated

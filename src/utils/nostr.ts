@@ -1,11 +1,20 @@
 /**
  * @fileoverview Nostr utility functions
  * Provides helper functions for event processing, validation, formatting,
- * and common Nostr protocol operations
+ * and common Nostr protocol operations with NIP-19 support
  */
 
 import DOMPurify from 'dompurify'
 import type { NostrEvent, PublicKey, Timestamp } from '@/types'
+import { 
+  isNip19Entity, 
+  nip19ToHex, 
+  pubkeyToNpub, 
+  eventIdToNote,
+  extractPubkey,
+  extractEventId,
+  isValidHexString
+} from './nip19'
 
 /**
  * Validates a hex string format
@@ -28,17 +37,39 @@ export function isValidHex(hex: string, expectedLength?: number): boolean {
 }
 
 /**
- * Validates a Nostr public key format
+ * Validates a Nostr public key format (hex or npub/nprofile)
  */
 export function isValidPublicKey(pubkey: string): boolean {
-  return isValidHex(pubkey, 64)
+  if (!pubkey) return false
+  
+  // Check if it's a valid hex pubkey
+  if (isValidHex(pubkey, 64)) return true
+  
+  // Check if it's a valid NIP-19 entity that contains a pubkey
+  if (isNip19Entity(pubkey)) {
+    const extractedPubkey = extractPubkey(pubkey)
+    return extractedPubkey !== null && isValidHex(extractedPubkey, 64)
+  }
+  
+  return false
 }
 
 /**
- * Validates a Nostr event ID format
+ * Validates a Nostr event ID format (hex or note/nevent)
  */
 export function isValidEventId(eventId: string): boolean {
-  return isValidHex(eventId, 64)
+  if (!eventId) return false
+  
+  // Check if it's a valid hex event ID
+  if (isValidHex(eventId, 64)) return true
+  
+  // Check if it's a valid NIP-19 entity that contains an event ID
+  if (isNip19Entity(eventId)) {
+    const extractedEventId = extractEventId(eventId)
+    return extractedEventId !== null && isValidHex(extractedEventId, 64)
+  }
+  
+  return false
 }
 
 /**
@@ -157,6 +188,73 @@ export function truncatePubkey(pubkey: PublicKey, startChars = 8, endChars = 8):
  */
 export function truncateEventId(eventId: string, startChars = 8, endChars = 8): string {
   return truncatePubkey(eventId, startChars, endChars)
+}
+
+/**
+ * Converts any pubkey to hex format for internal use
+ */
+export function normalizePublicKey(pubkey: string): string {
+  if (!pubkey) return pubkey
+  
+  // If it's already hex, return as-is
+  if (isValidHex(pubkey, 64)) return pubkey
+  
+  // If it's NIP-19, extract the hex
+  if (isNip19Entity(pubkey)) {
+    return nip19ToHex(pubkey)
+  }
+  
+  return pubkey
+}
+
+/**
+ * Converts any event ID to hex format for internal use
+ */
+export function normalizeEventId(eventId: string): string {
+  if (!eventId) return eventId
+  
+  // If it's already hex, return as-is
+  if (isValidHex(eventId, 64)) return eventId
+  
+  // If it's NIP-19, extract the hex
+  if (isNip19Entity(eventId)) {
+    return nip19ToHex(eventId)
+  }
+  
+  return eventId
+}
+
+/**
+ * Converts pubkey to user-friendly display format (npub)
+ */
+export function displayPublicKey(pubkey: string): string {
+  if (!pubkey) return pubkey
+  
+  // Convert to npub for user-friendly display
+  return pubkeyToNpub(pubkey)
+}
+
+/**
+ * Converts event ID to user-friendly display format (note)
+ */
+export function displayEventId(eventId: string): string {
+  if (!eventId) return eventId
+  
+  // Convert to note for user-friendly display
+  return eventIdToNote(eventId)
+}
+
+/**
+ * Checks if a string could be a valid Nostr identifier (hex or NIP-19)
+ */
+export function isValidNostrIdentifier(identifier: string): boolean {
+  if (!identifier) return false
+  
+  // Check if it's a valid hex string of expected length
+  if (isValidHexString(identifier, 64)) return true
+  
+  // Check if it's a valid NIP-19 entity
+  return isNip19Entity(identifier)
 }
 
 /**

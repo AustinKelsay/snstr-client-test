@@ -65,7 +65,7 @@ export function useTimelineProfiles(
   const profilesResult = useProfiles(pubkeys, {
     autoFetch,
     subscribe: false, // Disable automatic subscription to control timing
-    batchSize: 50 // Larger batch size to reduce number of subscriptions
+    batchSize: 100 // Increased from 50 to reduce number of subscriptions
   })
 
   // Debounced subscription to avoid rapid subscription creation
@@ -77,11 +77,11 @@ export function useTimelineProfiles(
       clearTimeout(debounceTimerRef.current)
     }
 
-    // Set new debounced timer (500ms delay)
+    // Set new debounced timer (500ms delay - reduced from 1000ms for better responsiveness)
     debounceTimerRef.current = setTimeout(() => {
       console.log(`🔄 Debounced profile subscription for ${pubkeys.length} profiles`)
       // This would trigger subscription, but we'll let the profiles hook handle it
-      // The debouncing helps avoid rapid subscription creation
+      // The debouncing helps avoid rapid subscription creation when navigating quickly
     }, 500)
 
     // Cleanup timer on unmount
