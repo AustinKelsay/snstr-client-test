@@ -1,9 +1,11 @@
 /**
  * @fileoverview Profile page component for displaying user profiles
  * Shows user information, posts, and profile management
+ * Supports both current user profile and other users' profiles via URL parameters
  */
 
 import { useState, useEffect } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useAppSelector, useAppDispatch } from '@/store'
 import { selectIsAuthenticated, selectUser } from '@/store/selectors/authSelectors'
 import { selectIsFollowing, selectIsUpdatingContacts } from '@/store/selectors/contactsSelectors'
@@ -13,6 +15,9 @@ import { loadUserPosts } from '@/store/slices/postsSlice'
 import { ProfileHeader, ProfileEditModal } from '@/components/profile'
 import { PostList } from '@/components/post'
 import { useProfile } from '@/hooks/useProfile'
+import LoadingSpinner from '@/components/ui/LoadingSpinner'
+import { EmptyState } from '@/components/common/EmptyState'
+import { createProfileNavigator } from '@/utils/navigation'
 import type { UserProfile } from '@/types/auth'
 import type { PublicKey } from '@/types'
 
@@ -23,49 +28,68 @@ export interface ProfilePageProps {
 /**
  * Profile page component displays user profile information
  * Includes profile header, bio, follower stats, and user posts
+ * Supports both current user profile (/profile) and other users (/profile/:pubkey)
  */
 export function ProfilePage({ className }: ProfilePageProps) {
+  const { pubkey: urlPubkey } = useParams<{ pubkey: string }>()
+  const navigate = useNavigate()
   const dispatch = useAppDispatch()
   const isAuthenticated = useAppSelector(selectIsAuthenticated)
-  const user = useAppSelector(selectUser)
+  const currentUser = useAppSelector(selectUser)
+  
+  // Determine which profile to show
+  const targetPubkey = urlPubkey || currentUser?.pubkey
+  const isOwnProfile = !urlPubkey || (currentUser?.pubkey === urlPubkey)
   
   const [activeTab, setActiveTab] = useState<'posts' | 'replies' | 'media' | 'likes'>('posts')
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   
   // Get user posts from store
   const userPosts = useAppSelector(state => 
-    user?.pubkey ? selectUserPosts(state, user.pubkey) : []
+    targetPubkey ? selectUserPosts(state, targetPubkey) : []
   )
   const [isLoadingPosts, setIsLoadingPosts] = useState(false)
   const [postsError] = useState<string | null>(null)
 
-  // Get real profile data
-  const { profile } = useProfile(user?.pubkey || null, {
+  // Get profile data for the target user
+  const { profile, isLoading: isProfileLoading } = useProfile(targetPubkey || null, {
     autoFetch: true,
     subscribe: true
   })
 
   // Get follow state for this profile
   const isFollowing = useAppSelector(state => 
-    user?.pubkey && profile?.pubkey && profile.pubkey !== user.pubkey 
+    targetPubkey && profile?.pubkey && !isOwnProfile 
       ? selectIsFollowing(state, profile.pubkey) 
       : false
   )
   const isFollowLoading = useAppSelector(selectIsUpdatingContacts)
 
-  // Use real profile data with fallbacks
+  // Redirect to login if trying to access own profile without authentication
+  useEffect(() => {
+    if (!urlPubkey && !isAuthenticated) {
+      // This is trying to access /profile without being authenticated
+      // Show authentication prompt instead of redirecting
+      return
+    }
+  }, [urlPubkey, isAuthenticated])
+
+  // Use profile data with fallbacks
   const displayProfile: UserProfile = {
-    pubkey: user?.pubkey || 'not-connected',
-    name: profile?.name || user?.name || 'Your Profile',
-    display_name: profile?.display_name || user?.display_name || 'Your Profile',
-    about: profile?.about || user?.about || 'Connect your Nostr extension to load your profile information',
-    picture: profile?.picture || user?.picture,
-    banner: profile?.banner || user?.banner,
-    website: profile?.website || user?.website,
-    nip05: profile?.nip05 || user?.nip05,
-    lud16: profile?.lud16 || user?.lud16,
-    lud06: profile?.lud06 || user?.lud06,
+    pubkey: targetPubkey || 'not-found',
+    name: profile?.name || (isOwnProfile ? currentUser?.name : undefined) || `${(targetPubkey || '').slice(0, 8)}...${(targetPubkey || '').slice(-4)}`,
+    display_name: profile?.display_name || (isOwnProfile ? currentUser?.display_name : undefined) || profile?.name || (isOwnProfile ? currentUser?.name : undefined) || 'User',
+    about: profile?.about || (isOwnProfile ? currentUser?.about : undefined) || (isOwnProfile ? 'Connect your Nostr extension to load your profile information' : 'This user has not set up their profile yet'),
+    picture: profile?.picture || (isOwnProfile ? currentUser?.picture : undefined),
+    banner: profile?.banner || (isOwnProfile ? currentUser?.banner : undefined),
+    website: profile?.website || (isOwnProfile ? currentUser?.website : undefined),
+    nip05: profile?.nip05 || (isOwnProfile ? currentUser?.nip05 : undefined),
+    lud16: profile?.lud16 || (isOwnProfile ? currentUser?.lud16 : undefined),
+    lud06: profile?.lud06 || (isOwnProfile ? currentUser?.lud06 : undefined),
   }
+
+  // Handle profile navigation
+  const handleAuthorClick = createProfileNavigator(navigate, currentUser?.pubkey)
 
   // Handle edit profile click
   const handleEditProfile = () => {
@@ -90,14 +114,26 @@ export function ProfilePage({ className }: ProfilePageProps) {
 
   // Load user posts when component mounts or user changes
   useEffect(() => {
-    if (user?.pubkey && isAuthenticated) {
+    if (targetPubkey) {
       setIsLoadingPosts(true)
-      dispatch(loadUserPosts({ pubkey: user.pubkey }))
+      dispatch(loadUserPosts({ pubkey: targetPubkey }))
         .finally(() => setIsLoadingPosts(false))
     }
-  }, [dispatch, user?.pubkey, isAuthenticated])
+  }, [dispatch, targetPubkey])
 
-  if (!isAuthenticated) {
+  // Show loading state while profile is loading
+  if (isProfileLoading && !profile) {
+    return (
+      <div className={`min-h-screen ${className || ''}`}>
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <LoadingSpinner size="lg" />
+        </div>
+      </div>
+    )
+  }
+
+  // Show not authenticated state for /profile route
+  if (!urlPubkey && !isAuthenticated) {
     return (
       <div className={`min-h-screen ${className || ''}`}>
         {/* Page Header */}
@@ -134,12 +170,25 @@ export function ProfilePage({ className }: ProfilePageProps) {
     )
   }
 
+  // Show not found state if profile doesn't exist
+  if (!targetPubkey) {
+    return (
+      <div className={`min-h-screen ${className || ''}`}>
+        <EmptyState
+          title="Profile not found"
+          description="The requested profile could not be found."
+          className="py-16"
+        />
+      </div>
+    )
+  }
+
   return (
     <div className={`min-h-screen ${className || ''}`}>
       {/* Profile Header */}
       <ProfileHeader
         profile={displayProfile}
-        isOwnProfile={displayProfile.pubkey === user?.pubkey}
+        isOwnProfile={isOwnProfile}
         isFollowing={isFollowing}
         isFollowLoading={isFollowLoading}
         followerCount={0} // TODO: Get from contacts slice
@@ -206,8 +255,9 @@ export function ProfilePage({ className }: ProfilePageProps) {
             isLoading={isLoadingPosts}
             error={postsError}
             hasMore={false}
-            emptyMessage="No posts yet"
-            emptyDescription="Start sharing your thoughts with the Nostr community!"
+            onAuthorClick={handleAuthorClick}
+            emptyMessage={isOwnProfile ? "No posts yet" : "No posts from this user"}
+            emptyDescription={isOwnProfile ? "Start sharing your thoughts with the Nostr community!" : "This user hasn't posted anything yet."}
           />
         )}
         
@@ -228,8 +278,8 @@ export function ProfilePage({ className }: ProfilePageProps) {
         )}
       </div>
 
-      {/* Profile Edit Modal */}
-      {isAuthenticated && (
+      {/* Profile Edit Modal - only show for own profile */}
+      {isAuthenticated && isOwnProfile && (
         <ProfileEditModal
           isOpen={isEditModalOpen}
           profile={displayProfile}

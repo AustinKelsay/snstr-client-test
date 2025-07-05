@@ -193,6 +193,19 @@ export const PostCard = memo(function PostCard({
             expandable={true}
             truncateAfter={280}
             maxLines={0}
+            onMentionClick={(mention) => {
+              // For now, use the mention as a username to navigate
+              // TODO: In the future, we could resolve mentions to actual pubkeys
+              if (onAuthorClick) {
+                // This is a simplified approach - in a real app you'd want to resolve the mention to a pubkey
+                console.log('Mention clicked:', mention)
+                // For now, just log it since we need a pubkey, not a username
+              }
+            }}
+            onHashtagClick={(hashtag) => {
+              // TODO: Implement hashtag navigation/search
+              console.log('Hashtag clicked:', hashtag)
+            }}
           />
 
           {/* Interactions */}

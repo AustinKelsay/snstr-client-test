@@ -18,6 +18,10 @@ interface SafeContentProps {
   expandable?: boolean
   /** Show "Read More" after this many characters (0 = no limit) */
   truncateAfter?: number
+  /** Callback fired when a mention is clicked */
+  onMentionClick?: (mention: string) => void
+  /** Callback fired when a hashtag is clicked */
+  onHashtagClick?: (hashtag: string) => void
 }
 
 /**
@@ -30,7 +34,9 @@ export const SafeContent = memo(function SafeContent({
   className,
   maxLines = 0,
   expandable = true,
-  truncateAfter = 500
+  truncateAfter = 500,
+  onMentionClick,
+  onHashtagClick
 }: SafeContentProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   
@@ -84,7 +90,12 @@ export const SafeContent = memo(function SafeContent({
         <span
           key={key}
           className="text-accent-primary font-medium hover:text-accent-secondary transition-colors cursor-pointer inline-block"
-          onClick={() => console.log('Hashtag clicked:', part)}
+          onClick={(e) => {
+            e.stopPropagation()
+            if (onHashtagClick) {
+              onHashtagClick(part.slice(1)) // Remove # prefix
+            }
+          }}
         >
           {part}
         </span>
@@ -95,7 +106,12 @@ export const SafeContent = memo(function SafeContent({
         <span
           key={key}
           className="text-accent-primary font-medium hover:text-accent-secondary transition-colors cursor-pointer inline-block"
-          onClick={() => console.log('Mention clicked:', part)}
+          onClick={(e) => {
+            e.stopPropagation()
+            if (onMentionClick) {
+              onMentionClick(part.slice(1)) // Remove @ prefix
+            }
+          }}
         >
           {part}
         </span>
@@ -111,6 +127,7 @@ export const SafeContent = memo(function SafeContent({
           rel="noopener noreferrer"
           className="text-text-link hover:text-text-link-hover underline decoration-1 underline-offset-2 hover:decoration-2 transition-all duration-200 inline-block break-words"
           title={part}
+          onClick={(e) => e.stopPropagation()}
         >
           {displayUrl}
         </a>
@@ -148,7 +165,10 @@ export const SafeContent = memo(function SafeContent({
       {/* Expand/Collapse Button */}
       {shouldTruncate && (
         <button
-          onClick={() => setIsExpanded(!isExpanded)}
+          onClick={(e) => {
+            e.stopPropagation()
+            setIsExpanded(!isExpanded)
+          }}
           className="mt-2 text-text-secondary hover:text-accent-primary transition-colors text-sm font-medium inline-flex items-center gap-1"
         >
           {isExpanded ? 'Show Less' : 'Read More'}

@@ -14,7 +14,8 @@ import { selectFeedPosts, selectIsFeedLoading, selectFeedError, selectHasMoreFee
 import { selectFollowedPubkeys, selectIsFetchingContacts } from '@/store/selectors/contactsSelectors'
 import { PostList, PostComposer } from '@/components/post'
 import { useTimelineProfiles } from '@/hooks/useTimelineProfiles'
-import type { FeedType, Post, PublicKey } from '@/types'
+import { createProfileNavigator } from '@/utils/navigation'
+import type { FeedType, Post } from '@/types'
 
 export interface TimelinePageProps {
   className?: string
@@ -154,9 +155,10 @@ export function TimelinePage({ className }: TimelinePageProps) {
     }))
   }, [dispatch, isAuthenticated, posts])
 
-  const handleAuthorClick = useCallback((pubkey: PublicKey) => {
-    navigate(`/profile/${pubkey}`)
-  }, [navigate])
+  const handleAuthorClick = useCallback(
+    createProfileNavigator(navigate, user?.pubkey),
+    [navigate, user?.pubkey]
+  )
 
   return (
     <div className={`min-h-screen bg-black ${className || ''}`}>
