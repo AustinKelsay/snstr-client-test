@@ -13,13 +13,16 @@ import { cn } from '@/utils/cn';
  * Provides skeleton animation for message bubbles in conversations
  * 
  * @param isOwn - Whether this is the user's own message
+ * @param index - Optional index for deterministic line count (prevents SSR hydration mismatches)
  * @param className - Additional CSS classes
  */
 export function MessageSkeleton({
   isOwn = false,
+  index,
   className,
 }: {
   isOwn?: boolean;
+  index?: number;
   className?: string;
 }) {
   return (
@@ -48,7 +51,7 @@ export function MessageSkeleton({
           )}
         >
           <SkeletonText 
-            lines={Math.floor(Math.random() * 3) + 1} 
+            lines={index !== undefined ? ((index % 3) + 1) : 2} 
             className="min-w-20"
           />
         </div>
@@ -89,6 +92,7 @@ export function MessageListSkeleton({
       <MessageSkeleton
         key={index}
         isOwn={isOwn}
+        index={index}
       />
     );
   });

@@ -192,20 +192,65 @@ export function useGranularProfile(
 
 /**
  * Hook for granular loading of multiple profiles
- * Note: This is a simplified implementation. For full multiple profile support,
- * consider using individual useGranularProfile hooks or the base useProfiles hook
+ * 
+ * @deprecated This hook is not yet implemented and will return empty data structures.
+ * @experimental This is a placeholder implementation that should not be used in production.
+ * 
+ * For multiple profile support, use individual useGranularProfile hooks or the base useProfiles hook instead.
+ * 
+ * TODO: Implement proper multiple profile granular loading with:
+ * - Batch fetching of multiple profiles
+ * - Individual loading states per profile
+ * - Proper error handling per profile
+ * - Memory optimization for large profile sets
  */
 export function useGranularProfiles(pubkeys: PublicKey[]) {
+  // DEVELOPMENT WARNING: This hook is not implemented and returns empty data
+  if (process.env.NODE_ENV === 'development') {
+    console.warn(
+      'useGranularProfiles is not implemented and will return empty data structures. ' +
+      'Use individual useGranularProfile hooks or the base useProfiles hook instead.'
+    )
+  }
+  
   // TODO: Implement proper multiple profile granular loading
-  // For now, return empty structure
+  // For now, return empty structure with clear indication of non-functionality
   return useMemo(() => ({
     profiles: {} as Record<PublicKey, UseGranularProfileReturn | null>,
     loadingStates: {} as Record<PublicKey, boolean>,
     isAnyLoading: false,
     isAllLoading: false,
     loadedCount: 0,
-    totalCount: pubkeys.length
+    totalCount: pubkeys.length,
+    // Flag to indicate this is not implemented
+    __experimental_notImplemented: true
   }), [pubkeys])
+}
+
+/**
+ * Mapping function to translate data field names to loading field names
+ * Ensures type safety when accessing loading states
+ */
+function getLoadingFieldKey(
+  fieldName: keyof GranularProfileData['fields']
+): keyof GranularProfileLoading['fields'] {
+  // Map data field names to loading field names
+  const fieldMapping: Record<
+    keyof GranularProfileData['fields'], 
+    keyof GranularProfileLoading['fields']
+  > = {
+    name: 'name',
+    username: 'username',
+    avatar: 'avatar',
+    bio: 'bio',
+    nip05: 'nip05',
+    website: 'website',
+    lightningAddress: 'lightningAddress',
+    banner: 'banner',
+    isVerified: 'verification' // Special mapping for verification field
+  }
+  
+  return fieldMapping[fieldName]
 }
 
 /**
@@ -225,10 +270,9 @@ export function useProfileField<T>(
   
   return useMemo(() => {
     const fieldValue = data.fields[fieldName]
-    // Fix the field lookup by using the correct field name mapping
-    const isFieldLoading = fieldName === 'isVerified' 
-      ? loading.fields.verification 
-      : loading.fields[fieldName as keyof typeof loading.fields]
+    // Use the mapping function to get the correct loading field key
+    const loadingFieldKey = getLoadingFieldKey(fieldName)
+    const isFieldLoading = loading.fields[loadingFieldKey]
     
     return {
       value: fieldValue ?? fallback ?? null,

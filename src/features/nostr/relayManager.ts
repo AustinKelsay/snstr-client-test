@@ -339,18 +339,18 @@ export class RelayManager {
       clearInterval(this.healthCheckTimer)
     }
     
-    this.healthCheckTimer = setInterval(() => {
-      this.performHealthCheck()
+    this.healthCheckTimer = setInterval(async () => {
+      await this.performHealthCheck()
     }, this.config.healthCheckInterval)
   }
 
   /**
    * Perform health check on all relays
    */
-  private performHealthCheck(): void {
+  private async performHealthCheck(): Promise<void> {
     console.log('🏥 Performing relay health check...')
     
-    this.relays.forEach(async (config, url) => {
+    for (const [url, config] of this.relays.entries()) {
       if (config.enabled) {
         const status = this.statuses.get(url)
         if (status && !status.connected && !status.connecting) {
@@ -358,7 +358,7 @@ export class RelayManager {
           await this.reconnectRelay(url)
         }
       }
-    })
+    }
   }
 
   /**
@@ -379,15 +379,22 @@ export class RelayManager {
 
     const success = await this.testRelay(url)
     
-    if (!success) {
-      // Schedule next reconnection attempt
-      const timer = setTimeout(() => {
-        this.reconnectRelay(url)
-        this.reconnectTimers.delete(url)
-      }, this.config.reconnectDelay)
-      
-      this.reconnectTimers.set(url, timer)
+      if (!success) {
+    // Clear any existing timer for this URL to prevent concurrent attempts
+    const existingTimer = this.reconnectTimers.get(url)
+    if (existingTimer) {
+      clearTimeout(existingTimer)
+      this.reconnectTimers.delete(url)
     }
+    
+    // Schedule next reconnection attempt
+    const timer = setTimeout(() => {
+      this.reconnectRelay(url)
+      this.reconnectTimers.delete(url)
+    }, this.config.reconnectDelay)
+    
+    this.reconnectTimers.set(url, timer)
+  }
   }
 
   /**

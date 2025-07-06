@@ -190,6 +190,25 @@ function isProfileStale(entry: ProfileCacheEntry): boolean {
 }
 
 /**
+ * Create an empty profile structure with all expected fields
+ * Ensures components can safely access profile properties without errors
+ */
+function createEmptyProfile(pubkey: PublicKey): UserProfile {
+  return {
+    pubkey,
+    name: undefined,
+    display_name: undefined,
+    about: undefined,
+    picture: undefined,
+    banner: undefined,
+    website: undefined,
+    nip05: undefined,
+    lud16: undefined,
+    lud06: undefined
+  }
+}
+
+/**
  * Fetch a single profile by pubkey
  */
 export const fetchProfile = createAsyncThunk(
@@ -469,9 +488,9 @@ export const profilesSlice = createSlice({
         if (existing) {
           existing.fetchAttempts += 1
         } else {
-          // Create empty entry to track failed attempts
+          // Create empty entry to track failed attempts with complete profile structure
           state.profiles[pubkey] = {
-            profile: { pubkey },
+            profile: createEmptyProfile(pubkey),
             lastFetched: Date.now() / 1000,
             lastUpdated: 0,
             isStale: true,

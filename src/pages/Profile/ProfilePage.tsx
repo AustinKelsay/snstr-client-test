@@ -4,7 +4,7 @@
  * Supports both current user profile and other users' profiles via URL parameters
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAppSelector, useAppDispatch } from '@/store'
 import { selectIsAuthenticated, selectUser } from '@/store/selectors/authSelectors'
@@ -73,8 +73,8 @@ export function ProfilePage({ className }: ProfilePageProps) {
     }
   }, [urlPubkey, isAuthenticated])
 
-  // Use profile data with fallbacks
-  const displayProfile: UserProfile = {
+  // Use profile data with fallbacks - memoized to prevent unnecessary re-renders
+  const displayProfile: UserProfile = useMemo(() => ({
     pubkey: targetPubkey || 'not-found',
     name: profile?.name || (isOwnProfile ? currentUser?.name : undefined) || `${(targetPubkey || '').slice(0, 8)}...${(targetPubkey || '').slice(-4)}`,
     display_name: profile?.display_name || (isOwnProfile ? currentUser?.display_name : undefined) || profile?.name || (isOwnProfile ? currentUser?.name : undefined) || 'User',
@@ -85,7 +85,7 @@ export function ProfilePage({ className }: ProfilePageProps) {
     nip05: profile?.nip05 || (isOwnProfile ? currentUser?.nip05 : undefined),
     lud16: profile?.lud16 || (isOwnProfile ? currentUser?.lud16 : undefined),
     lud06: profile?.lud06 || (isOwnProfile ? currentUser?.lud06 : undefined),
-  }
+  }), [targetPubkey, profile, isOwnProfile, currentUser])
 
   // Handle profile navigation
   const handleAuthorClick = createProfileNavigator(navigate, currentUser?.pubkey)

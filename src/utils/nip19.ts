@@ -11,6 +11,7 @@ import {
   encodeEvent,
   decode
 } from 'snstr'
+import { isValidRelayUrl } from './nostr'
 
 /**
  * NIP-19 entity prefixes for type checking
@@ -289,17 +290,7 @@ export function safeEncodeEvent(
   }
 }
 
-/**
- * Simple relay URL validation
- */
-function isValidRelayUrl(url: string): boolean {
-  try {
-    const parsed = new URL(url)
-    return parsed.protocol === 'ws:' || parsed.protocol === 'wss:'
-  } catch {
-    return false
-  }
-}
+
 
 /**
  * Safely decodes any NIP-19 entity

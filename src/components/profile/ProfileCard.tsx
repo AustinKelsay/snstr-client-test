@@ -5,12 +5,13 @@
  * Used in feeds, search results, follower lists, and user mentions
  */
 
-import React, { memo, useCallback, useState } from 'react'
-import { UserPlus, UserMinus, CheckCircle, MessageCircle, MoreHorizontal, Copy, Check } from 'lucide-react'
+import React, { memo, useCallback } from 'react'
+import { UserPlus, UserMinus, CheckCircle, MessageCircle, MoreHorizontal } from 'lucide-react'
 import type { PublicKey } from '@/types'
 
 import Button from '@/components/ui/Button'
 import { Avatar } from '@/components/common/Avatar'
+import { CopyButton } from '@/components/common/CopyButton'
 import { cn } from '@/utils/cn'
 import { pubkeyToNpub, formatNip19ForDisplay } from '@/utils/nip19'
 import { useGranularProfile } from '@/hooks/useGranularProfile'
@@ -73,27 +74,12 @@ export const ProfileCard = memo(function ProfileCard({
   onMessage,
   className,
 }: ProfileCardProps) {
-  // State for copy functionality
-  const [copiedField, setCopiedField] = useState<string | null>(null)
-  
   // Use granular profile loading for field-level skeleton states
   const { data: profileData, loading: profileLoading } = useGranularProfile(pubkey)
   
   // Generate NIP-19 identifiers for display
   const npubKey = pubkeyToNpub(pubkey)
   const displayNpub = formatNip19ForDisplay(npubKey, { startChars: 6, endChars: 4, showPrefix: false })
-  
-  // Copy to clipboard functionality
-  const handleCopy = useCallback(async (text: string, field: string, e: React.MouseEvent) => {
-    e.stopPropagation()
-    try {
-      await navigator.clipboard.writeText(text)
-      setCopiedField(field)
-      setTimeout(() => setCopiedField(null), 2000)
-    } catch (error) {
-      console.error('Failed to copy to clipboard:', error)
-    }
-  }, [])
   
   // Truncate bio for card display
   const shortBio = profileData.fields.bio && profileData.fields.bio.length > 120 
@@ -192,20 +178,14 @@ export const ProfileCard = memo(function ProfileCard({
               <p className="text-sm text-text-secondary truncate">@{profileData.fields.username}</p>
             </SkeletonOr>
             
-            <button
-              onClick={(e) => handleCopy(npubKey, 'npub', e)}
-              className="group flex-shrink-0 flex items-center gap-1 hover:bg-bg-active px-1 py-0.5 -mx-1 -my-0.5 rounded transition-all duration-200"
-              title={`Copy ${npubKey}`}
-            >
-              <span className="font-mono text-xs text-text-tertiary group-hover:text-accent-primary transition-colors">
-                {displayNpub}
-              </span>
-              {copiedField === 'npub' ? (
-                <Check className="w-3 h-3 text-accent-primary" />
-              ) : (
-                <Copy className="w-3 h-3 opacity-0 group-hover:opacity-100 text-text-secondary group-hover:text-accent-primary transition-all duration-200" />
-              )}
-            </button>
+            <CopyButton
+              text={npubKey}
+              displayText={displayNpub}
+              variant="ghost"
+              size="sm"
+              formatNip19={false}
+              className="flex-shrink-0 font-mono text-xs text-text-tertiary hover:text-accent-primary transition-colors"
+            />
           </div>
           
           {/* Bio with granular loading */}
@@ -335,12 +315,23 @@ export const ProfileCard = memo(function ProfileCard({
           </div>
           
           {/* Username with granular loading */}
-          <SkeletonOr
-            loading={profileLoading.fields.username}
-            skeleton={<SkeletonUsername />}
-          >
-            <p className="text-sm text-text-secondary">@{profileData.fields.username}</p>
-          </SkeletonOr>
+          <div className="flex items-center gap-2">
+            <SkeletonOr
+              loading={profileLoading.fields.username}
+              skeleton={<SkeletonUsername />}
+            >
+              <p className="text-sm text-text-secondary">@{profileData.fields.username}</p>
+            </SkeletonOr>
+            
+            <CopyButton
+              text={npubKey}
+              displayText={displayNpub}
+              variant="ghost"
+              size="sm"
+              formatNip19={false}
+              className="flex-shrink-0 font-mono text-xs text-text-tertiary hover:text-accent-primary transition-colors"
+            />
+          </div>
           
           {/* NIP-05 with granular loading */}
           <SkeletonOr

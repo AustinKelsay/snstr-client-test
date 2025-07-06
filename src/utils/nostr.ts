@@ -17,24 +17,9 @@ import {
 } from './nip19'
 
 /**
- * Validates a hex string format
+ * Validates a hex string format - alias for isValidHexString for API consistency
  */
-export function isValidHex(hex: string, expectedLength?: number): boolean {
-  if (!hex || typeof hex !== 'string') {
-    return false
-  }
-  
-  const hexRegex = /^[0-9a-f]+$/i
-  if (!hexRegex.test(hex)) {
-    return false
-  }
-  
-  if (expectedLength && hex.length !== expectedLength) {
-    return false
-  }
-  
-  return true
-}
+export const isValidHex = isValidHexString
 
 /**
  * Validates a Nostr public key format (hex or npub/nprofile)
@@ -43,12 +28,12 @@ export function isValidPublicKey(pubkey: string): boolean {
   if (!pubkey) return false
   
   // Check if it's a valid hex pubkey
-  if (isValidHex(pubkey, 64)) return true
+  if (isValidHexString(pubkey, 64)) return true
   
   // Check if it's a valid NIP-19 entity that contains a pubkey
   if (isNip19Entity(pubkey)) {
     const extractedPubkey = extractPubkey(pubkey)
-    return extractedPubkey !== null && isValidHex(extractedPubkey, 64)
+    return extractedPubkey !== null && isValidHexString(extractedPubkey, 64)
   }
   
   return false
@@ -61,12 +46,12 @@ export function isValidEventId(eventId: string): boolean {
   if (!eventId) return false
   
   // Check if it's a valid hex event ID
-  if (isValidHex(eventId, 64)) return true
+  if (isValidHexString(eventId, 64)) return true
   
   // Check if it's a valid NIP-19 entity that contains an event ID
   if (isNip19Entity(eventId)) {
     const extractedEventId = extractEventId(eventId)
-    return extractedEventId !== null && isValidHex(extractedEventId, 64)
+    return extractedEventId !== null && isValidHexString(extractedEventId, 64)
   }
   
   return false
@@ -76,7 +61,7 @@ export function isValidEventId(eventId: string): boolean {
  * Validates a Nostr signature format
  */
 export function isValidSignature(signature: string): boolean {
-  return isValidHex(signature, 128)
+  return isValidHexString(signature, 128)
 }
 
 /**
@@ -197,7 +182,7 @@ export function normalizePublicKey(pubkey: string): string {
   if (!pubkey) return pubkey
   
   // If it's already hex, return as-is
-  if (isValidHex(pubkey, 64)) return pubkey
+  if (isValidHexString(pubkey, 64)) return pubkey
   
   // If it's NIP-19, extract the hex
   if (isNip19Entity(pubkey)) {
@@ -214,7 +199,7 @@ export function normalizeEventId(eventId: string): string {
   if (!eventId) return eventId
   
   // If it's already hex, return as-is
-  if (isValidHex(eventId, 64)) return eventId
+  if (isValidHexString(eventId, 64)) return eventId
   
   // If it's NIP-19, extract the hex
   if (isNip19Entity(eventId)) {
@@ -274,6 +259,10 @@ export function extractHashtags(content: string): string[] {
 
 /**
  * Extract mentions from text content
+ * 
+ * NOTE: This extracts @username style mentions for statistics/display purposes only.
+ * In Nostr, proper mentions use 'p' tags with pubkeys, not usernames.
+ * These extracted mentions cannot be resolved to profiles without a username-to-pubkey system.
  */
 export function extractMentions(content: string): string[] {
   // Simple regex for @username mentions
@@ -315,6 +304,10 @@ export function sanitizeContent(content: string): string {
 
 /**
  * Parse and linkify text content with hashtags, mentions, and URLs
+ * 
+ * NOTE: @username mentions are detected but not linked because Nostr uses pubkey-based
+ * identity, not usernames. Proper Nostr mentions use 'p' tags with pubkeys.
+ * This function could be enhanced to support NIP-05 username resolution in the future.
  */
 export function parseTextContent(content: string): Array<{
   type: 'text' | 'hashtag' | 'mention' | 'url'
@@ -350,10 +343,13 @@ export function parseTextContent(content: string): Array<{
         href: `/search?q=${encodeURIComponent(matchText)}`
       })
     } else if (matchText.startsWith('@')) {
+      // NOTE: @username mentions are detected but not linked in Nostr
+      // Proper Nostr mentions use 'p' tags with pubkeys, not usernames
+      // This could be enhanced in the future with NIP-05 username resolution
       result.push({
         type: 'mention',
-        content: matchText,
-        href: `/profile/${matchText.slice(1)}`
+        content: matchText
+        // href intentionally omitted - no valid username-to-pubkey resolution
       })
     } else if (matchText.startsWith('http')) {
       result.push({

@@ -67,35 +67,42 @@ export function Nip19Input({
   const [validation, setValidation] = useState<ValidationResult>({ isValid: true })
   const [copied, setCopied] = useState(false)
 
+  // Create a stable validation function
+  const validateInput = useCallback((inputValue: string, inputEntityType: string): ValidationResult => {
+    if (!inputValue.trim()) {
+      return { isValid: true }
+    }
+
+    switch (inputEntityType) {
+      case 'pubkey':
+        return validatePublicKeyInput(inputValue)
+      case 'event':
+        return validateEventIdInput(inputValue)
+      default:
+        return validateNostrIdentifier(inputValue)
+    }
+  }, [])
+
+  // Create a stable onChange wrapper to avoid useEffect dependency issues
+  const notifyChange = useCallback((inputValue: string, validationResult: ValidationResult) => {
+    onChange(inputValue, validationResult)
+  }, [onChange])
+
   // Validate input when value or entityType changes
   useEffect(() => {
-    if (!value.trim()) {
-      setValidation({ isValid: true })
-      return
-    }
-
-    let result: ValidationResult
-    switch (entityType) {
-      case 'pubkey':
-        result = validatePublicKeyInput(value)
-        break
-      case 'event':
-        result = validateEventIdInput(value)
-        break
-      default:
-        result = validateNostrIdentifier(value)
-        break
-    }
-
+    const result = validateInput(value, entityType)
     setValidation(result)
-    onChange(value, result)
-  }, [value, entityType, onChange])
+    notifyChange(value, result)
+  }, [value, entityType, validateInput, notifyChange])
 
   // Handle input change
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value
-    onChange(newValue, validation)
-  }, [onChange, validation])
+    // Calculate validation for the new value to avoid stale state issues
+    const newValidation = validateInput(newValue, entityType)
+    setValidation(newValidation)
+    notifyChange(newValue, newValidation)
+  }, [validateInput, entityType, notifyChange])
 
   // Handle copy to clipboard
   const handleCopy = useCallback(async () => {

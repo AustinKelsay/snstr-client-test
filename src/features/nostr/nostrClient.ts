@@ -34,6 +34,11 @@ const SUBSCRIPTION_CONFIG = {
   maxConcurrent: 10, // Maximum concurrent subscriptions
 }
 
+// Cache configuration
+const CACHE_CONFIG = {
+  maxSize: 1000, // Maximum number of events to cache before evicting oldest
+}
+
 /**
  * Event handler callback types
  */
@@ -54,6 +59,7 @@ export class NostrClient {
   private relayStatuses: Map<RelayUrl, RelayStatus> = new Map()
   private subscriptions: Map<string, string[]> = new Map()
   private eventCache: Map<string, NostrEvent> = new Map()
+  private cacheInsertionOrder: string[] = [] // Track insertion order for LRU eviction
   private eventHandlers: Map<string, EventHandler> = new Map()
   private relayEventHandlers: Map<RelayEventType, RelayEventHandler[]> = new Map()
   private errorHandlers: ErrorHandler[] = []
@@ -81,6 +87,34 @@ export class NostrClient {
         messageCount: 0
       })
     })
+  }
+
+  /**
+   * Cache an event with size limit enforcement
+   * Removes oldest entries when cache exceeds maximum size
+   */
+  private cacheEvent(event: NostrEvent): void {
+    const eventId = event.id
+    
+    // If event already exists, move it to the end (most recent)
+    if (this.eventCache.has(eventId)) {
+      const index = this.cacheInsertionOrder.indexOf(eventId)
+      if (index > -1) {
+        this.cacheInsertionOrder.splice(index, 1)
+      }
+    }
+    
+    // Add/update event in cache
+    this.eventCache.set(eventId, event)
+    this.cacheInsertionOrder.push(eventId)
+    
+    // Enforce cache size limit by removing oldest entries
+    while (this.eventCache.size > CACHE_CONFIG.maxSize) {
+      const oldestEventId = this.cacheInsertionOrder.shift()
+      if (oldestEventId) {
+        this.eventCache.delete(oldestEventId)
+      }
+    }
   }
 
   /**
@@ -332,7 +366,7 @@ export class NostrClient {
         filters,
         (event: NostrEvent, relayUrl: RelayUrl) => {
           // Cache the event for quick access
-          this.eventCache.set(event.id, event)
+          this.cacheEvent(event)
           onEvent(event, relayUrl)
         },
         undefined,
@@ -391,7 +425,7 @@ export class NostrClient {
 
       // Cache all fetched profiles
       profiles.forEach(event => {
-        this.eventCache.set(event.id, event)
+        this.cacheEvent(event)
       })
 
       console.log(`✅ Fetched ${profiles.length} profiles from ${pubkeys.length} requested`)
@@ -496,7 +530,7 @@ export class NostrClient {
       
       // Cache all fetched events
       events.forEach(event => {
-        this.eventCache.set(event.id, event)
+        this.cacheEvent(event)
       })
       
       if (options.deduplicate !== false) {
@@ -531,7 +565,7 @@ export class NostrClient {
       
       // Cache the event if found
       if (event) {
-        this.eventCache.set(event.id, event)
+        this.cacheEvent(event)
       }
       
       return event
@@ -582,6 +616,7 @@ export class NostrClient {
    */
   clearCache(): void {
     this.eventCache.clear()
+    this.cacheInsertionOrder = []
   }
 
   /**
@@ -620,6 +655,7 @@ export class NostrClient {
     
     // Clear cache
     this.eventCache.clear()
+    this.cacheInsertionOrder = []
     
     // Disconnect from relays (includes RelayPool cleanup)
     await this.disconnectFromRelays()

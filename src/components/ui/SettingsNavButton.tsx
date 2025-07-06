@@ -38,9 +38,9 @@ const SettingsNavButton = forwardRef<HTMLButtonElement, SettingsNavButtonProps>(
           
           // Active state - Matrix green background with black text
           isActive && [
-            'bg-[#00ff41] text-black font-semibold border border-[#00ff41]',
+            'bg-[var(--accent-primary)] text-black font-semibold border border-[var(--accent-primary)]',
             'shadow-[0_0_10px_rgba(0,255,65,0.5)] transform scale-[1.02]',
-            'hover:bg-[#00cc33] hover:border-[#00cc33]'
+            'hover:bg-[var(--accent-secondary)] hover:border-[var(--accent-secondary)]'
           ],
           
           // Inactive state - ghost styling with hover effects

@@ -4,13 +4,14 @@
  * Uses cypherpunk matrix green theme system
  */
 
-import { useState, useCallback } from 'react'
-import { Menu, X, Zap, LogOut, Copy, Check } from 'lucide-react'
+import { useState } from 'react'
+import { Menu, X, Zap, LogOut } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import { useAuth } from '@/features/auth'
 import { Link } from 'react-router-dom'
 import { pubkeyToNpub, formatNip19ForDisplay } from '@/utils/nip19'
 import { SkeletonName, SkeletonUsername } from '@/components/common/MicroSkeletons'
+import { CopyButton } from '@/components/common/CopyButton'
 
 interface HeaderProps {
   className?: string
@@ -18,7 +19,6 @@ interface HeaderProps {
 
 function Header({ className }: HeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [copiedField, setCopiedField] = useState<string | null>(null)
 
   // Get auth state and actions
   const { 
@@ -47,17 +47,6 @@ function Header({ className }: HeaderProps) {
   const handleLogout = () => {
     logout()
   }
-
-  // Copy to clipboard functionality
-  const handleCopy = useCallback(async (text: string, field: string) => {
-    try {
-      await navigator.clipboard.writeText(text)
-      setCopiedField(field)
-      setTimeout(() => setCopiedField(null), 2000)
-    } catch (error) {
-      console.error('Failed to copy to clipboard:', error)
-    }
-  }, [])
 
   // Get the best available username for display
   const getDisplayUsername = () => {
@@ -176,20 +165,14 @@ function Header({ className }: HeaderProps) {
                       <div className="flex items-center gap-2">
                         <span>Connected: {getDisplayUsername()}</span>
                         {user && (
-                          <button
-                            onClick={() => handleCopy(getUserNpub()!, 'npub')}
-                            className="group flex items-center gap-1 hover:bg-opacity-20 hover:bg-current px-1 py-0.5 -mx-1 -my-0.5 rounded transition-all duration-200"
-                            title={`Copy ${getUserNpub()}`}
-                          >
-                            <span className="font-mono text-xs opacity-60 group-hover:opacity-100 transition-opacity">
-                              {getDisplayNpub()}
-                            </span>
-                            {copiedField === 'npub' ? (
-                              <Check className="w-3 h-3" style={{ color: 'var(--accent-primary)' }} />
-                            ) : (
-                              <Copy className="w-3 h-3 opacity-0 group-hover:opacity-60 transition-all duration-200" />
-                            )}
-                          </button>
+                          <CopyButton
+                            text={getUserNpub()!}
+                            displayText={getDisplayNpub()!}
+                            variant="ghost"
+                            size="sm"
+                            formatNip19={false}
+                            className="font-mono text-xs opacity-60 hover:opacity-100 transition-opacity"
+                          />
                         )}
                       </div>
                     )
@@ -330,20 +313,14 @@ function Header({ className }: HeaderProps) {
                           <div className="flex items-center gap-2">
                             <span>Connected: {getDisplayUsername()}</span>
                             {user && (
-                              <button
-                                onClick={() => handleCopy(getUserNpub()!, 'npub')}
-                                className="group flex items-center gap-1 hover:bg-opacity-20 hover:bg-current px-1 py-0.5 -mx-1 -my-0.5 rounded transition-all duration-200"
-                                title={`Copy ${getUserNpub()}`}
-                              >
-                                <span className="font-mono text-xs opacity-60 group-hover:opacity-100 transition-opacity">
-                                  {getDisplayNpub()}
-                                </span>
-                                {copiedField === 'npub' ? (
-                                  <Check className="w-3 h-3" style={{ color: 'var(--accent-primary)' }} />
-                                ) : (
-                                  <Copy className="w-3 h-3 opacity-0 group-hover:opacity-60 transition-all duration-200" />
-                                )}
-                              </button>
+                              <CopyButton
+                                text={getUserNpub()!}
+                                displayText={getDisplayNpub()!}
+                                variant="ghost"
+                                size="sm"
+                                formatNip19={false}
+                                className="font-mono text-xs opacity-60 hover:opacity-100 transition-opacity"
+                              />
                             )}
                           </div>
                         )
