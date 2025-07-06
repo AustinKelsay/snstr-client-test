@@ -1,7 +1,7 @@
 /**
  * @fileoverview PostCard component for displaying individual posts
- * Handles post rendering, interactions, and user engagement features
- * Provides a Twitter-like post display with like, zap, reply, and repost functionality
+ * Handles post rendering, interactions, and user engagement features with granular skeleton loading
+ * Provides a Twitter-like post display with field-level skeleton loading for profile data
  */
 
 import React, { memo, useCallback, useState } from 'react'
@@ -12,7 +12,13 @@ import Button from '@/components/ui/Button'
 import { Avatar } from '@/components/common/Avatar'
 import { SafeContent } from './SafeContent'
 import { cn } from '@/utils/cn'
-import { useProfileDisplay } from '@/hooks/useProfile'
+import { useGranularProfile } from '@/hooks/useGranularProfile'
+import { 
+  SkeletonName, 
+  SkeletonVerificationBadge,
+  SkeletonOr
+} from '@/components/common/MicroSkeletons'
+import { SkeletonAvatar } from '@/components/common/Skeleton'
 import { eventIdToNote, formatNip19ForDisplay, extractPubkey, extractEventId, isNip19Entity } from '@/utils/nip19'
 
 interface PostCardProps {
@@ -39,9 +45,9 @@ interface PostCardProps {
 }
 
 /**
- * PostCard component displays individual posts with interaction capabilities
- * Supports likes, reposts, replies, and zaps based on user authentication
- * Provides responsive design for both mobile and desktop
+ * PostCard component displays individual posts with granular skeleton loading
+ * Individual profile fields show skeleton loading while post content renders normally
+ * This enables "no more Unknown User" experience - skeleton loading at field level
  */
 export const PostCard = memo(function PostCard({
   post,
@@ -57,6 +63,9 @@ export const PostCard = memo(function PostCard({
 }: PostCardProps) {
   // State for copy functionality
   const [copiedField, setCopiedField] = useState<string | null>(null)
+
+  // Use granular profile loading for field-level skeleton states
+  const { data: profileData, loading: profileLoading } = useGranularProfile(post.pubkey)
 
   // Format timestamp for display
   const timeAgo = formatDistanceToNow(new Date(post.created_at * 1000), { addSuffix: true })
@@ -163,12 +172,6 @@ export const PostCard = memo(function PostCard({
     }
   }, [onRepost, post.id])
 
-  // Get real profile data
-  const profileDisplay = useProfileDisplay(post.pubkey)
-  const displayName = profileDisplay.name
-  const avatarUrl = profileDisplay.avatar
-  const isVerified = profileDisplay.isVerified
-
   return (
     <article 
       className={cn(
@@ -190,74 +193,105 @@ export const PostCard = memo(function PostCard({
       )}
 
       <div className="space-y-3">
-        {/* Header with inline avatar */}
+        {/* Header with inline avatar and granular skeleton loading */}
         <div className="flex items-center gap-3 flex-wrap">
           <button
             onClick={handleAuthorClick}
             className="group/name flex items-center gap-2 hover:bg-bg-active px-2 py-1 -mx-2 -my-1 rounded transition-all duration-200"
           >
-            <Avatar
-              src={avatarUrl}
-              name={displayName}
-              pubkey={post.pubkey}
-              size="sm"
-              className="ring-1 ring-border-primary group-hover/name:ring-accent-primary transition-all duration-200"
-            />
-            <span className="font-semibold text-text-primary group-hover/name:text-accent-primary transition-colors text-lg">
-              {displayName}
-            </span>
-            {(isVerified || profileDisplay.hasLightningAddress) && (
+            {/* Avatar with granular loading */}
+            {profileLoading.fields.avatar ? (
+              <SkeletonAvatar size="sm" className="ring-1 ring-border-primary" />
+            ) : (
+              <Avatar
+                src={profileData.fields.avatar}
+                name={profileData.fields.name}
+                pubkey={post.pubkey}
+                size="sm"
+                className="ring-1 ring-border-primary group-hover/name:ring-accent-primary transition-all duration-200"
+              />
+            )}
+            
+            {/* Display name with granular loading */}
+            <SkeletonOr
+              loading={profileLoading.fields.name}
+              skeleton={<SkeletonName variant="medium" />}
+            >
+              <span className="font-semibold text-text-primary group-hover/name:text-accent-primary transition-colors text-lg">
+                {profileData.fields.name}
+              </span>
+            </SkeletonOr>
+            
+            {/* Verification badges with granular loading */}
+            <SkeletonOr
+              loading={profileLoading.fields.verification}
+              skeleton={<SkeletonVerificationBadge className="opacity-60" />}
+            >
               <div className="flex items-center gap-1">
-                {isVerified && (
+                {profileData.fields.isVerified && (
                   <span 
                     className="text-purple-400 text-sm cursor-pointer hover:text-purple-300 transition-colors" 
-                    title={`NIP-05 Verified: ${profileDisplay.nip05 || 'Identity verified via DNS'}`}
+                    title={`NIP-05 Verified: ${profileData.fields.nip05 || 'Identity verified via DNS'}`}
                   >
                     ✓
                   </span>
                 )}
-                {profileDisplay.hasLightningAddress && (
+                {profileData.fields.lightningAddress && (
                   <span 
                     className="text-bitcoin text-sm cursor-pointer animate-pulse hover:text-orange-400 transition-colors" 
-                    title={`Lightning Address: ${profileDisplay.lightningAddress || 'Can receive Bitcoin payments'}`}
+                    title={`Lightning Address: ${profileData.fields.lightningAddress}`}
                   >
                     ⚡
                   </span>
                 )}
               </div>
-            )}
+            </SkeletonOr>
           </button>
           
           <span className="text-text-quaternary font-mono text-xs">•</span>
           
-          <div className="flex items-center gap-2">
-            <time 
-              className="text-text-secondary font-mono text-xs tracking-wider flex items-center gap-1 hover:text-text-primary transition-colors" 
-              dateTime={fullTimestamp}
-              title={fullTimestamp}
-            >
-              <Clock className="w-3 h-3" />
+          {/* Timestamp - always available from post data */}
+          <button
+            onClick={(e) => handleCopy(fullTimestamp, 'timestamp', e)}
+            className="group/time flex items-center gap-1 hover:bg-bg-active px-1 py-0.5 -mx-1 -my-0.5 rounded transition-all duration-200"
+            title={`Posted at ${fullTimestamp}`}
+          >
+            <Clock className="w-3 h-3 text-text-quaternary group-hover/time:text-accent-primary transition-colors" />
+            <span className="font-mono text-xs text-text-tertiary group-hover/time:text-accent-primary transition-colors">
               {timeAgo}
-            </time>
-            
-            <button
-              onClick={(e) => handleCopy(noteId, 'note', e)}
-              className="group flex items-center gap-1 hover:bg-bg-active px-1 py-0.5 -mx-1 -my-0.5 rounded transition-all duration-200"
-              title={`Copy note: ${noteId}`}
-            >
-              <span className="font-mono text-xs text-text-quaternary group-hover:text-accent-primary transition-colors">
-                {displayNote}
-              </span>
-              {copiedField === 'note' ? (
-                <Check className="w-3 h-3 text-accent-primary" />
-              ) : (
-                <Copy className="w-3 h-3 opacity-0 group-hover:opacity-100 text-text-secondary group-hover:text-accent-primary transition-all duration-200" />
-              )}
-            </button>
-          </div>
+            </span>
+            {copiedField === 'timestamp' ? (
+              <Check className="w-3 h-3 text-accent-primary" />
+            ) : (
+              <Copy className="w-3 h-3 opacity-0 group-hover/time:opacity-100 text-text-secondary group-hover/time:text-accent-primary transition-all duration-200" />
+            )}
+          </button>
         </div>
 
-        {/* Post Content */}
+        {/* Post metadata with some skeleton loading */}
+        <div className="flex items-center gap-3 font-mono text-xs text-text-quaternary">
+          <button
+            onClick={(e) => handleCopy(noteId, 'note', e)}
+            className="group/note flex items-center gap-1 hover:bg-bg-active px-1 py-0.5 -mx-1 -my-0.5 rounded transition-all duration-200"
+            title={`Note ID: ${noteId}`}
+          >
+            <span className="group-hover/note:text-accent-primary transition-colors">
+              {displayNote}
+            </span>
+            {copiedField === 'note' ? (
+              <Check className="w-3 h-3 text-accent-primary" />
+            ) : (
+              <Copy className="w-3 h-3 opacity-0 group-hover/note:opacity-100 text-text-secondary group-hover/note:text-accent-primary transition-all duration-200" />
+            )}
+          </button>
+          
+          <span>•</span>
+          
+          {/* Relay info could also be skeleton loaded if from dynamic sources */}
+          <span className="opacity-60">via relay</span>
+        </div>
+
+        {/* Post content - always available from post data */}
         <div className="space-y-3">
           <SafeContent 
             content={post.content}
@@ -278,7 +312,7 @@ export const PostCard = memo(function PostCard({
             }}
           />
 
-          {/* Interactions */}
+          {/* Interactions - can show skeleton for counts if they're loading */}
           {showInteractions && (
             <div className="flex items-center justify-between max-w-lg pt-2">
               {/* Reply */}
@@ -361,7 +395,7 @@ export const PostCard = memo(function PostCard({
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  'p-2 rounded-sm font-mono text-xs',
+                  'flex items-center gap-2 px-3 py-2 rounded-sm font-mono text-xs',
                   'text-text-secondary hover:text-text-primary hover:bg-bg-active',
                   'transition-all duration-200 group/btn'
                 )}
@@ -372,7 +406,6 @@ export const PostCard = memo(function PostCard({
           )}
         </div>
       </div>
-
     </article>
   )
 }) 

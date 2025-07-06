@@ -7,8 +7,8 @@
 import { memo, useCallback, useEffect, useRef } from 'react'
 import type { Post, PublicKey } from '@/types'
 import { PostCard } from './PostCard'
-import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { EmptyState } from '@/components/common/EmptyState'
+import { PostListSkeleton } from './PostCardSkeleton'
 
 interface PostListProps {
   /** Array of posts to display */
@@ -161,20 +161,14 @@ export const PostList = memo(function PostList({
 
       {/* Loading state for infinite scroll */}
       {hasMore && (
-        <div 
-          ref={loadMoreRef}
-          className="flex items-center justify-center py-8"
-        >
+        <div ref={loadMoreRef}>
           {isLoading ? (
-            <div className="flex items-center gap-3">
-              <LoadingSpinner size="sm" />
-              <span className="text-text-secondary text-sm font-mono">
-                Loading more posts...
-              </span>
-            </div>
+            <PostListSkeleton count={3} />
           ) : (
-            <div className="text-text-secondary text-sm font-mono">
-              Scroll to load more posts
+            <div className="flex items-center justify-center py-8">
+              <div className="text-text-secondary text-sm font-mono">
+                Scroll to load more posts
+              </div>
             </div>
           )}
         </div>

@@ -10,6 +10,7 @@ import { cn } from '@/utils/cn'
 import { useAuth } from '@/features/auth'
 import { Link } from 'react-router-dom'
 import { pubkeyToNpub, formatNip19ForDisplay } from '@/utils/nip19'
+import { SkeletonName, SkeletonUsername } from '@/components/common/MicroSkeletons'
 
 interface HeaderProps {
   className?: string
@@ -162,7 +163,15 @@ function Header({ className }: HeaderProps) {
                 className="text-sm"
                 style={{ color: 'var(--text-secondary)' }}
               >
-{isAuthenticated
+{isLoading && isAuthenticated
+                  ? (
+                      <div className="flex items-center gap-2">
+                        <span>Connected: </span>
+                        <SkeletonName variant="short" className="inline-block" />
+                        <SkeletonUsername className="inline-block" />
+                      </div>
+                    )
+                  : isAuthenticated
                   ? (
                       <div className="flex items-center gap-2">
                         <span>Connected: {getDisplayUsername()}</span>
@@ -308,7 +317,15 @@ function Header({ className }: HeaderProps) {
                     className="text-sm"
                     style={{ color: 'var(--text-secondary)' }}
                   >
-{isAuthenticated
+{isLoading && isAuthenticated
+                      ? (
+                          <div className="flex items-center gap-2">
+                            <span>Connected: </span>
+                            <SkeletonName variant="short" className="inline-block" />
+                            <SkeletonUsername className="inline-block" />
+                          </div>
+                        )
+                      : isAuthenticated
                       ? (
                           <div className="flex items-center gap-2">
                             <span>Connected: {getDisplayUsername()}</span>

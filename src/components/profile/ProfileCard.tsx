@@ -1,21 +1,31 @@
 /**
- * @fileoverview ProfileCard component for compact user profile display
+ * @fileoverview ProfileCard component for compact user profile display with granular skeleton loading
  * Shows avatar, name, bio snippet, verification status, and follow button
+ * Individual profile fields show skeleton loading while other fields show real data
  * Used in feeds, search results, follower lists, and user mentions
  */
 
 import React, { memo, useCallback, useState } from 'react'
 import { UserPlus, UserMinus, CheckCircle, MessageCircle, MoreHorizontal, Copy, Check } from 'lucide-react'
 import type { PublicKey } from '@/types'
-import type { UserProfile } from '@/types/auth'
+
 import Button from '@/components/ui/Button'
 import { Avatar } from '@/components/common/Avatar'
 import { cn } from '@/utils/cn'
 import { pubkeyToNpub, formatNip19ForDisplay } from '@/utils/nip19'
+import { useGranularProfile } from '@/hooks/useGranularProfile'
+import { 
+  SkeletonName, 
+  SkeletonUsername,
+  SkeletonBio,
+  SkeletonNip05,
+  SkeletonOr
+} from '@/components/common/MicroSkeletons'
+import { SkeletonAvatar } from '@/components/common/Skeleton'
 
 interface ProfileCardProps {
-  /** User profile data */
-  profile: UserProfile
+  /** User public key to load profile for */
+  pubkey: PublicKey
   /** Whether this is the current user's profile */
   isOwnProfile?: boolean
   /** Whether current user is following this profile */
@@ -43,12 +53,13 @@ interface ProfileCardProps {
 }
 
 /**
- * ProfileCard component displays compact user profile information
+ * ProfileCard component displays compact user profile information with granular skeleton loading
+ * Individual fields show skeleton loading while other fields display real data
  * Supports both horizontal and vertical layouts with configurable elements
  * Provides interactive elements like follow buttons and click actions
  */
 export const ProfileCard = memo(function ProfileCard({
-  profile,
+  pubkey,
   isOwnProfile = false,
   isFollowing = false,
   isFollowLoading = false,
@@ -65,12 +76,11 @@ export const ProfileCard = memo(function ProfileCard({
   // State for copy functionality
   const [copiedField, setCopiedField] = useState<string | null>(null)
   
-  // Format display name and username
-  const displayName = profile.display_name || profile.name || `${profile.pubkey.slice(0, 8)}...${profile.pubkey.slice(-4)}`
-  const username = profile.name || `${profile.pubkey.slice(0, 8)}...${profile.pubkey.slice(-4)}`
+  // Use granular profile loading for field-level skeleton states
+  const { data: profileData, loading: profileLoading } = useGranularProfile(pubkey)
   
   // Generate NIP-19 identifiers for display
-  const npubKey = pubkeyToNpub(profile.pubkey)
+  const npubKey = pubkeyToNpub(pubkey)
   const displayNpub = formatNip19ForDisplay(npubKey, { startChars: 6, endChars: 4, showPrefix: false })
   
   // Copy to clipboard functionality
@@ -86,9 +96,9 @@ export const ProfileCard = memo(function ProfileCard({
   }, [])
   
   // Truncate bio for card display
-  const shortBio = profile.about && profile.about.length > 120 
-    ? `${profile.about.slice(0, 120)}...`
-    : profile.about
+  const shortBio = profileData.fields.bio && profileData.fields.bio.length > 120 
+    ? `${profileData.fields.bio.slice(0, 120)}...`
+    : profileData.fields.bio
 
   // Handle card click
   const handleCardClick = useCallback((e: React.MouseEvent) => {
@@ -99,9 +109,9 @@ export const ProfileCard = memo(function ProfileCard({
     }
     
     if (clickable && onClick) {
-      onClick(profile.pubkey)
+      onClick(pubkey)
     }
-  }, [clickable, onClick, profile.pubkey])
+  }, [clickable, onClick, pubkey])
 
   // Handle follow toggle
   const handleFollowToggle = useCallback((e: React.MouseEvent) => {
@@ -109,19 +119,19 @@ export const ProfileCard = memo(function ProfileCard({
     if (isFollowLoading) return
     
     if (isFollowing && onUnfollow) {
-      onUnfollow(profile.pubkey)
+      onUnfollow(pubkey)
     } else if (!isFollowing && onFollow) {
-      onFollow(profile.pubkey)
+      onFollow(pubkey)
     }
-  }, [isFollowing, isFollowLoading, onFollow, onUnfollow, profile.pubkey])
+  }, [isFollowing, isFollowLoading, onFollow, onUnfollow, pubkey])
 
   // Handle message click
   const handleMessage = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
     if (onMessage) {
-      onMessage(profile.pubkey)
+      onMessage(pubkey)
     }
-  }, [onMessage, profile.pubkey])
+  }, [onMessage, pubkey])
 
   if (horizontal) {
     return (
@@ -134,28 +144,54 @@ export const ProfileCard = memo(function ProfileCard({
         )}
         onClick={handleCardClick}
       >
-        {/* Avatar */}
+        {/* Avatar with granular loading */}
         <div className="flex-shrink-0">
-          <Avatar
-            src={profile.picture}
-            name={displayName}
-            pubkey={profile.pubkey}
-            size="lg"
-          />
+          <SkeletonOr
+            loading={profileLoading.fields.avatar}
+            skeleton={<SkeletonAvatar size="lg" />}
+          >
+            <Avatar
+              src={profileData.fields.avatar}
+              name={profileData.fields.name}
+              pubkey={pubkey}
+              size="lg"
+            />
+          </SkeletonOr>
         </div>
 
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <h3 className="font-semibold text-text-primary truncate">
-              {displayName}
-            </h3>
-            {profile.nip05 && (
-              <CheckCircle className="w-4 h-4 text-accent-primary flex-shrink-0" />
-            )}
+            {/* Display name with granular loading */}
+            <SkeletonOr
+              loading={profileLoading.fields.name}
+              skeleton={<SkeletonName variant="medium" />}
+            >
+              <h3 className="font-semibold text-text-primary truncate">
+                {profileData.fields.name}
+              </h3>
+            </SkeletonOr>
+            
+            {/* Verification badge with granular loading */}
+            <SkeletonOr
+              loading={profileLoading.fields.verification}
+              skeleton={<CheckCircle className="w-4 h-4 text-bg-tertiary animate-pulse" />}
+            >
+              {profileData.fields.nip05 && (
+                <CheckCircle className="w-4 h-4 text-accent-primary flex-shrink-0" />
+              )}
+            </SkeletonOr>
           </div>
+          
           <div className="flex items-center gap-2 min-w-0">
-            <p className="text-sm text-text-secondary truncate">@{username}</p>
+            {/* Username with granular loading */}
+            <SkeletonOr
+              loading={profileLoading.fields.username}
+              skeleton={<SkeletonUsername />}
+            >
+              <p className="text-sm text-text-secondary truncate">@{profileData.fields.username}</p>
+            </SkeletonOr>
+            
             <button
               onClick={(e) => handleCopy(npubKey, 'npub', e)}
               className="group flex-shrink-0 flex items-center gap-1 hover:bg-bg-active px-1 py-0.5 -mx-1 -my-0.5 rounded transition-all duration-200"
@@ -171,10 +207,19 @@ export const ProfileCard = memo(function ProfileCard({
               )}
             </button>
           </div>
-          {showBio && shortBio && (
-            <p className="text-sm text-text-secondary mt-1 line-clamp-2">
-              {shortBio}
-            </p>
+          
+          {/* Bio with granular loading */}
+          {showBio && (
+            <SkeletonOr
+              loading={profileLoading.fields.bio}
+              skeleton={<SkeletonBio lines={2} className="mt-1" />}
+            >
+              {shortBio && (
+                <p className="text-sm text-text-secondary mt-1 line-clamp-2">
+                  {shortBio}
+                </p>
+              )}
+            </SkeletonOr>
           )}
         </div>
 
@@ -234,14 +279,19 @@ export const ProfileCard = memo(function ProfileCard({
     >
       {/* Header with avatar and actions */}
       <div className="flex items-start justify-between mb-3">
-        {/* Avatar */}
+        {/* Avatar with granular loading */}
         <div className="flex-shrink-0">
-          <Avatar
-            src={profile.picture}
-            name={displayName}
-            pubkey={profile.pubkey}
-            size="xl"
-          />
+          <SkeletonOr
+            loading={profileLoading.fields.avatar}
+            skeleton={<SkeletonAvatar size="xl" />}
+          >
+            <Avatar
+              src={profileData.fields.avatar}
+              name={profileData.fields.name}
+              pubkey={pubkey}
+              size="xl"
+            />
+          </SkeletonOr>
         </div>
 
         {/* Action buttons */}
@@ -263,24 +313,58 @@ export const ProfileCard = memo(function ProfileCard({
         {/* Names */}
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <h3 className="font-semibold text-text-primary">
-              {displayName}
-            </h3>
-            {profile.nip05 && (
-              <CheckCircle className="w-4 h-4 text-accent-primary" />
-            )}
+            {/* Display name with granular loading */}
+            <SkeletonOr
+              loading={profileLoading.fields.name}
+              skeleton={<SkeletonName variant="long" />}
+            >
+              <h3 className="font-semibold text-text-primary">
+                {profileData.fields.name}
+              </h3>
+            </SkeletonOr>
+            
+            {/* Verification badge with granular loading */}
+            <SkeletonOr
+              loading={profileLoading.fields.verification}
+              skeleton={<CheckCircle className="w-4 h-4 text-bg-tertiary animate-pulse" />}
+            >
+              {profileData.fields.nip05 && (
+                <CheckCircle className="w-4 h-4 text-accent-primary" />
+              )}
+            </SkeletonOr>
           </div>
-          <p className="text-sm text-text-secondary">@{username}</p>
-          {profile.nip05 && (
-            <p className="text-xs text-accent-primary">✓ {profile.nip05}</p>
-          )}
+          
+          {/* Username with granular loading */}
+          <SkeletonOr
+            loading={profileLoading.fields.username}
+            skeleton={<SkeletonUsername />}
+          >
+            <p className="text-sm text-text-secondary">@{profileData.fields.username}</p>
+          </SkeletonOr>
+          
+          {/* NIP-05 with granular loading */}
+          <SkeletonOr
+            loading={profileLoading.fields.nip05}
+            skeleton={<SkeletonNip05 className="mt-1" />}
+          >
+            {profileData.fields.nip05 && (
+              <p className="text-xs text-accent-primary">✓ {profileData.fields.nip05}</p>
+            )}
+          </SkeletonOr>
         </div>
 
-        {/* Bio */}
-        {showBio && shortBio && (
-          <p className="text-sm text-text-secondary leading-relaxed">
-            {shortBio}
-          </p>
+        {/* Bio with granular loading */}
+        {showBio && (
+          <SkeletonOr
+            loading={profileLoading.fields.bio}
+            skeleton={<SkeletonBio lines={3} />}
+          >
+            {shortBio && (
+              <p className="text-sm text-text-secondary leading-relaxed">
+                {shortBio}
+              </p>
+            )}
+          </SkeletonOr>
         )}
 
         {/* Actions */}
@@ -324,6 +408,4 @@ export const ProfileCard = memo(function ProfileCard({
       </div>
     </div>
   )
-})
-
-export default ProfileCard 
+}) 

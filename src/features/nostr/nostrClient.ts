@@ -15,8 +15,7 @@ const DEFAULT_RELAYS: RelayUrl[] = [
   'wss://relay.nostr.band',
   'wss://nos.lol', 
   'wss://relay.damus.io',
-  'wss://nostr.wine',
-  'wss://relay.snort.social'
+  'wss://nostr.wine'
 ]
 
 // Connection configuration

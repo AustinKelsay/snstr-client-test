@@ -59,6 +59,27 @@ This document outlines technology recommendations for building the snstr-client-
 
 **Recommendation**: **Lucide React** - Maintains consistency with shadcn/ui design system.
 
+### Loading State System
+**Industry Standard: Custom Skeleton Components**
+- **Pros**: Highly customizable, theme integration, performance optimized, accessibility compliant
+- **Cons**: Initial development time, maintenance overhead
+- **Use Case**: Professional applications requiring high-quality loading states
+
+**Popular Alternative: React Content Loader**
+- **Pros**: Pre-built components, simple setup, SVG-based animations
+- **Cons**: Limited customization, may not match design system, bundle size
+- **Use Case**: Quick prototyping, when customization isn't critical
+
+**Recommendation**: **Custom Skeleton System** - Full control over loading states with perfect theme integration and cypherpunk aesthetic compliance.
+
+**Implementation Details:**
+- **Base Components**: Foundational skeleton building blocks (Skeleton, SkeletonText, SkeletonAvatar, SkeletonButton)
+- **Specialized Skeletons**: Purpose-built components for posts, profiles, messages, and data displays
+- **List Variations**: Smart skeleton lists with natural content variation
+- **Theme Integration**: Matrix green animations with dark theme optimization
+- **Performance**: GPU-accelerated CSS animations with reduced motion support
+- **Accessibility**: Proper ARIA labels and semantic structure
+
 ---
 
 ## State Management
@@ -406,6 +427,37 @@ This stack provides excellent developer experience, optimal performance, and ali
 - Using arbitrary values instead of design system tokens
 - Not maintaining consistent spacing and sizing scale
 - Forgetting to configure dark mode variants
+
+#### Custom Skeleton System
+
+**Best Practices:**
+- Use skeleton components for all loading states to maintain consistency
+- Match skeleton structure to actual content layout
+- Implement natural variation in list skeletons for realistic appearance
+- Use proper ARIA labels for accessibility (`aria-label="Loading..."`)
+- Respect `prefers-reduced-motion` for animation preferences
+- Optimize skeleton count based on viewport size
+- Clean up skeleton components when content loads
+
+**Limitations:**
+- Requires maintenance when actual components change
+- Animation performance impact with too many simultaneous skeletons
+- Custom implementation requires thorough testing across devices
+- May increase initial bundle size
+
+**Conventions:**
+- Name skeleton components with `Skeleton` suffix (e.g., `PostCardSkeleton`)
+- Use consistent animation timing across all skeleton components
+- Implement skeleton variants for different content sizes
+- Group related skeleton components in feature directories
+- Export skeleton components alongside their content counterparts
+
+**Common Pitfalls:**
+- Creating skeletons that don't match actual content structure
+- Using too many animated skeletons simultaneously
+- Not implementing proper cleanup when content loads
+- Forgetting to test skeleton components on different screen sizes
+- Not providing fallbacks for users with reduced motion preferences
 
 #### Lucide React
 

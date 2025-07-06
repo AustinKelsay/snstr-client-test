@@ -344,6 +344,8 @@ export function PostPage({ className }: PostPageProps) {
               placeholder="Reply to this post..."
               onClose={() => setIsReplyComposerOpen(false)}
               autoFocus
+              isModal={true}
+              className="shadow-xl"
             />
           </div>
         )}

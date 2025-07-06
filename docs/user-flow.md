@@ -99,8 +99,7 @@ Load Discover Feed
     ↓
 Connect to default relays:
 - wss://relay.primal.net
-- wss://relay.damus.io  
-- wss://relay.snort.social
+- wss://relay.damus.io
     ↓
 Fetch popular kind-1 events
     ↓
@@ -420,7 +419,6 @@ Display current relays with:
 Show default relays:
 - wss://relay.primal.net ✓
 - wss://relay.damus.io ✓
-- wss://relay.snort.social ✓
     ↓
 [+ Add Relay] button
     ↓

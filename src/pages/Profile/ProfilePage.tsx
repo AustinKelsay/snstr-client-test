@@ -12,10 +12,9 @@ import { selectIsFollowing, selectIsUpdatingContacts } from '@/store/selectors/c
 import { selectUserPosts } from '@/store/selectors/postsSelectors'
 import { followUser, unfollowUser } from '@/store/slices/contactsSlice'
 import { loadUserPosts } from '@/store/slices/postsSlice'
-import { ProfileHeader, ProfileEditModal } from '@/components/profile'
-import { PostList } from '@/components/post'
+import { ProfileHeader, ProfileEditModal, ProfileHeaderSkeleton } from '@/components/profile'
+import { PostList, PostListSkeleton } from '@/components/post'
 import { useProfile } from '@/hooks/useProfile'
-import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { EmptyState } from '@/components/common/EmptyState'
 import { createProfileNavigator } from '@/utils/navigation'
 import type { UserProfile } from '@/types/auth'
@@ -125,8 +124,25 @@ export function ProfilePage({ className }: ProfilePageProps) {
   if (isProfileLoading && !profile) {
     return (
       <div className={`min-h-screen ${className || ''}`}>
-        <div className="flex items-center justify-center min-h-[50vh]">
-          <LoadingSpinner size="lg" />
+        {/* Profile Header Skeleton */}
+        <ProfileHeaderSkeleton />
+        
+        {/* Profile Tabs Skeleton */}
+        <div className="border-b border-[var(--border-primary)] bg-[var(--bg-secondary)] sticky top-0 z-10">
+          <div className="container-padding">
+            <div className="flex items-center gap-8">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="py-3">
+                  <div className="skeleton-base w-16 h-5" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Posts Skeleton */}
+        <div className="container-padding py-6">
+          <PostListSkeleton count={5} />
         </div>
       </div>
     )
@@ -187,7 +203,7 @@ export function ProfilePage({ className }: ProfilePageProps) {
     <div className={`min-h-screen ${className || ''}`}>
       {/* Profile Header */}
       <ProfileHeader
-        profile={displayProfile}
+        pubkey={targetPubkey}
         isOwnProfile={isOwnProfile}
         isFollowing={isFollowing}
         isFollowLoading={isFollowLoading}
@@ -250,15 +266,22 @@ export function ProfilePage({ className }: ProfilePageProps) {
       {/* Profile Content */}
       <div className="container-padding py-6">
         {activeTab === 'posts' && (
-          <PostList
-            posts={userPosts}
-            isLoading={isLoadingPosts}
-            error={postsError}
-            hasMore={false}
-            onAuthorClick={handleAuthorClick}
-            emptyMessage={isOwnProfile ? "No posts yet" : "No posts from this user"}
-            emptyDescription={isOwnProfile ? "Start sharing your thoughts with the Nostr community!" : "This user hasn't posted anything yet."}
-          />
+          <>
+            {/* Show skeleton during initial posts load */}
+            {isLoadingPosts && userPosts.length === 0 ? (
+              <PostListSkeleton count={5} />
+            ) : (
+              <PostList
+                posts={userPosts}
+                isLoading={isLoadingPosts}
+                error={postsError}
+                hasMore={false}
+                onAuthorClick={handleAuthorClick}
+                emptyMessage={isOwnProfile ? "No posts yet" : "No posts from this user"}
+                emptyDescription={isOwnProfile ? "Start sharing your thoughts with the Nostr community!" : "This user hasn't posted anything yet."}
+              />
+            )}
+          </>
         )}
         
         {activeTab !== 'posts' && (

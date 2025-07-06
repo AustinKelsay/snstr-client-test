@@ -60,13 +60,6 @@ export const DEFAULT_RELAYS: RelayConfig[] = [
     write: false,
     enabled: true,
     priority: 4
-  },
-  {
-    url: 'wss://relay.snort.social',
-    read: true,
-    write: true,
-    enabled: true,
-    priority: 5
   }
 ]
 

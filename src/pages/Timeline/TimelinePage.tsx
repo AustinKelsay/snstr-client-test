@@ -12,7 +12,7 @@ import { fetchUserContacts } from '@/store/slices/contactsSlice'
 import { likePost, repostEvent, optimisticLike, optimisticRepost } from '@/store/slices/interactionsSlice'
 import { selectFeedPosts, selectIsFeedLoading, selectFeedError, selectHasMoreFeed } from '@/store/selectors'
 import { selectFollowedPubkeys, selectIsFetchingContacts } from '@/store/selectors/contactsSelectors'
-import { PostList, PostComposer } from '@/components/post'
+import { PostList, PostComposer, PostListSkeleton } from '@/components/post'
 import { useTimelineProfiles } from '@/hooks/useTimelineProfiles'
 import { createProfileNavigator } from '@/utils/navigation'
 import type { FeedType, Post } from '@/types'
@@ -199,48 +199,57 @@ export function TimelinePage({ className }: TimelinePageProps) {
 
       {/* Post Composer */}
       {isAuthenticated && (
-        <div className="max-w-2xl mx-auto px-4 py-4 border-b border-gray-800 bg-black/95 sticky top-[120px] z-10 backdrop-blur">
+        <div className="max-w-2xl mx-auto px-4 py-4 border-b border-border-primary bg-bg-primary/95 sticky top-[120px] z-10 backdrop-blur">
           <PostComposer
             placeholder="What's happening on Nostr?"
             maxLength={500}
-            className="bg-gray-900"
+            compact={true}
+            className="shadow-lg"
           />
         </div>
       )}
 
       {/* Timeline Content */}
       <div className="max-w-2xl mx-auto">
-        <PostList
-          posts={posts}
-          isLoading={isLoading}
-          error={error}
-          hasMore={hasMore}
-          onLoadMore={handleLoadMore}
-          onPostClick={handlePostClick}
-          onLike={handleLike}
-          onZap={handleZap}
-          onReply={handleReply}
-          onRepost={handleRepost}
-          onAuthorClick={handleAuthorClick}
-          emptyMessage={
-            feedType === 'discover' 
-              ? "No posts found" 
-              : isFetchingContacts
-                ? "Loading your follows..."
-                : followedPubkeys.length === 0
-                  ? "Your following feed is empty"
-                  : "No posts from your follows"
-          }
-          emptyDescription={
-            feedType === 'discover'
-              ? "Check back later for new posts"
-              : isFetchingContacts
-                ? "Fetching your contact list from relays"
-                : followedPubkeys.length === 0
-                  ? "Follow some users to see their posts here"
-                  : "Your followed users haven't posted recently"
-          }
-        />
+        {/* Show skeleton during initial load */}
+        {isLoading && posts.length === 0 ? (
+          <PostListSkeleton 
+            count={8} 
+            className="px-4" 
+          />
+        ) : (
+          <PostList
+            posts={posts}
+            isLoading={isLoading}
+            error={error}
+            hasMore={hasMore}
+            onLoadMore={handleLoadMore}
+            onPostClick={handlePostClick}
+            onLike={handleLike}
+            onZap={handleZap}
+            onReply={handleReply}
+            onRepost={handleRepost}
+            onAuthorClick={handleAuthorClick}
+            emptyMessage={
+              feedType === 'discover' 
+                ? "No posts found" 
+                : isFetchingContacts
+                  ? "Loading your follows..."
+                  : followedPubkeys.length === 0
+                    ? "Your following feed is empty"
+                    : "No posts from your follows"
+            }
+            emptyDescription={
+              feedType === 'discover'
+                ? "Check back later for new posts"
+                : isFetchingContacts
+                  ? "Fetching your contact list from relays"
+                  : followedPubkeys.length === 0
+                    ? "Follow some users to see their posts here"
+                    : "Your followed users haven't posted recently"
+            }
+          />
+        )}
       </div>
     </div>
   )
