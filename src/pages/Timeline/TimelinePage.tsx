@@ -161,37 +161,80 @@ export function TimelinePage({ className }: TimelinePageProps) {
   )
 
   return (
-    <div className={`min-h-screen bg-black ${className || ''}`}>
+    <div className={`min-h-screen bg-bg-primary ${className || ''}`}>
       {/* Page Header */}
-      <div className="border-b border-gray-800 bg-black/95 sticky top-0 z-10 backdrop-blur">
+      <div className="border-b border-border-primary bg-bg-primary/95 sticky top-0 z-10 backdrop-blur-sm">
         <div className="max-w-2xl mx-auto px-4">
-          <div className="py-4">
-            <h1 className="text-2xl font-bold text-white mb-4">Timeline</h1>
+          <div className="py-6">
+            {/* Page Title */}
+            <h1 className="text-2xl font-bold text-text-primary mb-6 font-mono tracking-wider bg-gradient-to-r from-accent-primary to-accent-secondary bg-clip-text text-transparent">
+              TIMELINE
+            </h1>
             
-            {/* Feed Tabs */}
-            <div className="flex space-x-1 bg-gray-900 rounded-lg p-1">
-              <button
-                onClick={() => setFeedType('discover')}
-                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                  feedType === 'discover'
-                    ? 'bg-accent-primary text-black'
-                    : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                Discover
-              </button>
-              {isAuthenticated && (
+            {/* Feed Tabs - Redesigned with cypherpunk aesthetic */}
+            <div className="relative">
+              {/* Background glow effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-accent-primary/10 via-transparent to-accent-primary/10 opacity-50 rounded-lg blur-sm"></div>
+              
+              {/* Tab container */}
+              <div className="relative flex bg-bg-secondary/80 backdrop-blur-sm border border-border-primary rounded-lg p-1 shadow-lg">
+                {/* Sliding background indicator */}
+                <div 
+                  className={`absolute top-1 bottom-1 bg-gradient-to-r from-accent-primary to-accent-secondary rounded-md transition-all duration-300 ease-in-out shadow-lg ${
+                    !isAuthenticated 
+                      ? 'left-1 right-1' // Full width when only one tab (not authenticated)
+                      : feedType === 'discover' 
+                        ? 'left-1 right-1/2 mr-0.5' // Left half when authenticated and discover selected
+                        : 'left-1/2 right-1 ml-0.5' // Right half when authenticated and following selected
+                  }`}
+                  style={{
+                    boxShadow: '0 0 20px rgba(0, 255, 65, 0.3)',
+                  }}
+                />
+                
+                {/* Discover Tab */}
                 <button
-                  onClick={() => setFeedType('following')}
-                  className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                    feedType === 'following'
-                      ? 'bg-accent-primary text-black'
-                      : 'text-gray-400 hover:text-white'
+                  onClick={() => setFeedType('discover')}
+                  className={`relative z-10 flex-1 py-3 px-6 rounded-md font-mono text-sm font-bold tracking-wide transition-all duration-300 group ${
+                    feedType === 'discover'
+                      ? 'text-bg-primary shadow-lg'
+                      : 'text-text-secondary hover:text-text-primary'
                   }`}
                 >
-                  Following
+                  <span className="flex items-center justify-center gap-2">
+                    <div className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                      feedType === 'discover' 
+                        ? 'bg-bg-primary animate-pulse' 
+                        : 'bg-text-tertiary group-hover:bg-accent-primary'
+                    }`} />
+                    DISCOVER
+                  </span>
                 </button>
-              )}
+
+                {/* Following Tab - Only show if authenticated */}
+                {isAuthenticated && (
+                  <button
+                    onClick={() => setFeedType('following')}
+                    className={`relative z-10 flex-1 py-3 px-6 rounded-md font-mono text-sm font-bold tracking-wide transition-all duration-300 group ${
+                      feedType === 'following'
+                        ? 'text-bg-primary shadow-lg'
+                        : 'text-text-secondary hover:text-text-primary'
+                    }`}
+                  >
+                    <span className="flex items-center justify-center gap-2">
+                      <div className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                        feedType === 'following' 
+                          ? 'bg-bg-primary animate-pulse' 
+                          : 'bg-text-tertiary group-hover:bg-accent-primary'
+                      }`} />
+                      FOLLOWING
+                    </span>
+                  </button>
+                )}
+              </div>
+              
+              {/* Matrix-style scan line effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-accent-primary/5 to-transparent animate-pulse rounded-lg pointer-events-none"></div>
             </div>
           </div>
         </div>
@@ -199,7 +242,7 @@ export function TimelinePage({ className }: TimelinePageProps) {
 
       {/* Post Composer */}
       {isAuthenticated && (
-        <div className="max-w-2xl mx-auto px-4 py-4 border-b border-border-primary bg-bg-primary/95 sticky top-[120px] z-10 backdrop-blur">
+        <div className="max-w-2xl mx-auto px-4 py-4 border-b border-border-primary bg-bg-primary/95 sticky top-[140px] z-10 backdrop-blur">
           <PostComposer
             placeholder="What's happening on Nostr?"
             maxLength={500}

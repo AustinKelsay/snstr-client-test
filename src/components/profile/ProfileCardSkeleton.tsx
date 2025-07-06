@@ -198,7 +198,6 @@ export function ProfileHeaderSkeleton({
         <div className="absolute -bottom-12 left-6">
           <SkeletonAvatar 
             size="xl"
-            className="ring-4 ring-bg-primary"
           />
         </div>
       </div>

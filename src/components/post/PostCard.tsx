@@ -201,14 +201,14 @@ export const PostCard = memo(function PostCard({
           >
             {/* Avatar with granular loading */}
             {profileLoading.fields.avatar ? (
-              <SkeletonAvatar size="sm" className="ring-1 ring-border-primary" />
+              <SkeletonAvatar size="sm" />
             ) : (
               <Avatar
                 src={profileData.fields.avatar}
                 name={profileData.fields.name}
                 pubkey={post.pubkey}
                 size="sm"
-                className="ring-1 ring-border-primary group-hover/name:ring-accent-primary transition-all duration-200"
+                className="transition-all duration-200"
               />
             )}
             

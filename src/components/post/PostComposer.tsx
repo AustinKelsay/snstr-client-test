@@ -8,7 +8,9 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { Send, X, Hash, AtSign, Eye, EyeOff, Terminal, User, ChevronDown, ChevronUp } from 'lucide-react'
 import { useAppDispatch, useAppSelector } from '@/store'
-import { selectIsAuthenticated } from '@/store/selectors/authSelectors'
+import { selectIsAuthenticated, selectUser, selectPublicKey } from '@/store/selectors/authSelectors'
+import { selectProfileDisplayName, selectProfileAvatar, selectIsProfileLoading, selectIsProfileStale } from '@/store/selectors/profilesSelectors'
+import { fetchProfile } from '@/store/slices/profilesSlice'
 import { addPost } from '@/store/slices/postsSlice'
 import { nostrClient } from '@/features/nostr/nostrClient'
 import Button from '@/components/ui/Button'
@@ -54,6 +56,22 @@ export function PostComposer({
 }: PostComposerProps) {
   const dispatch = useAppDispatch()
   const isAuthenticated = useAppSelector(selectIsAuthenticated)
+  const user = useAppSelector(selectUser)
+  const publicKey = useAppSelector(selectPublicKey)
+  
+  // Get current user profile data
+  const displayName = useAppSelector(state => 
+    publicKey ? selectProfileDisplayName(state, publicKey) : (user?.name || 'Anonymous')
+  )
+  const avatarUrl = useAppSelector(state => 
+    publicKey ? selectProfileAvatar(state, publicKey) : user?.picture
+  )
+  const isLoadingProfile = useAppSelector(state => 
+    publicKey ? selectIsProfileLoading(state, publicKey) : false
+  )
+  const isProfileStale = useAppSelector(state => 
+    publicKey ? selectIsProfileStale(state, publicKey) : false
+  )
   
   // Component state
   const [content, setContent] = useState('')
@@ -86,6 +104,14 @@ export function PostComposer({
       setIsExpanded(true)
     }
   }, [compact, content, isExpanded])
+
+  // Fetch user profile when connected
+  useEffect(() => {
+    if (isAuthenticated && publicKey && (isProfileStale || !avatarUrl)) {
+      // Automatically fetch the user's profile metadata from relays
+      dispatch(fetchProfile(publicKey))
+    }
+  }, [isAuthenticated, publicKey, isProfileStale, avatarUrl, dispatch])
 
   // Character count and validation
   const characterCount = content.length
@@ -178,7 +204,7 @@ export function PostComposer({
         // Add to local state optimistically
         const post: Post = {
           ...signedEvent,
-          author_name: 'You', // TODO: Get from user profile
+          author_name: displayName || user?.name || 'You',
           replies_count: 0,
           likes_count: 0,
           reposts_count: 0,
@@ -266,8 +292,12 @@ export function PostComposer({
         <div className="flex items-center gap-4">
           {/* Avatar */}
           <Avatar 
+            src={avatarUrl}
+            name={displayName}
+            pubkey={publicKey}
             size="md" 
-            className="ring-2 ring-accent-primary/20 group-hover/composer:ring-accent-primary/40 transition-all duration-300"
+            isLoading={isLoadingProfile}
+            className="transition-all duration-300"
           />
           
           {/* Title */}

@@ -6,8 +6,7 @@
  */
 
 import { memo, useCallback, useState } from 'react'
-import { Settings, UserPlus, UserMinus, MessageCircle, MoreHorizontal, CheckCircle, Link as LinkIcon, Calendar, Zap, Globe, Shield, Copy, Check } from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
+import { Settings, UserPlus, UserMinus, MessageCircle, MoreHorizontal, CheckCircle, Link as LinkIcon, Calendar, Zap, Shield, Copy, Check } from 'lucide-react'
 import type { PublicKey } from '@/types'
 import Button from '@/components/ui/Button'
 import { Avatar } from '@/components/common/Avatar'
@@ -142,14 +141,13 @@ export const ProfileHeader = memo(function ProfileHeader({
         <div className="absolute -bottom-12 left-6">
           <SkeletonOr
             loading={profileLoading.fields.avatar}
-            skeleton={<SkeletonAvatar size="xl" className="ring-4 ring-bg-primary" />}
+            skeleton={<SkeletonAvatar size="xl" />}
           >
             <Avatar
               src={profileData.fields.avatar}
               name={profileData.fields.name}
               pubkey={pubkey}
               size="xl"
-              className="ring-4 ring-bg-primary"
             />
           </SkeletonOr>
         </div>
