@@ -261,10 +261,48 @@ link: 16px font-medium     /* Clickable links */
 - **Branded**: Maintain cypherpunk aesthetic even in empty states
 
 ### Loading States
-- **Skeleton Screens**: Show content structure while loading
-- **Progressive Loading**: Load critical content first
-- **Timeout Handling**: Clear feedback when operations take too long
-- **Cancellation**: Allow users to cancel long operations
+
+#### Skeleton System Design
+The skeleton loading system provides high-quality loading states that maintain the cypherpunk aesthetic while ensuring excellent user experience during content loading.
+
+**Design Principles:**
+- **Content Awareness**: Skeletons mirror the exact structure of actual content
+- **Natural Variation**: List skeletons vary in size and content to appear realistic
+- **Cypherpunk Aesthetic**: Matrix green animations with dark theme optimization
+- **Performance First**: GPU-accelerated animations at 60fps
+- **Accessibility**: Full ARIA support with reduced motion compliance
+
+**Skeleton Components:**
+
+**Base Components:**
+- **Skeleton**: Foundational component with customizable dimensions and variants
+- **SkeletonText**: Multi-line text with automatic width variation for natural appearance
+- **SkeletonAvatar**: Circular profile image skeletons in 5 sizes (xs, sm, md, lg, xl)
+- **SkeletonButton**: Button-shaped skeletons in 3 sizes (sm, md, lg)
+
+**Specialized Components:**
+- **PostCardSkeleton**: Individual post cards with variants (compact/default/expanded)
+- **ProfileCardSkeleton**: Profile cards with avatars, stats, and follow buttons
+- **MessageSkeleton**: Direct message bubbles for conversations
+- **RelayStatusSkeleton**: Relay connection status displays
+- **SearchResultSkeleton**: User and post search results
+- **NavigationSkeleton**: Sidebar, mobile, and tab navigation states
+
+**Animation Guidelines:**
+- **Duration**: 1.5s infinite loop with smooth gradient transitions
+- **Reduced Motion**: Static appearance for users with motion sensitivities
+- **Timing**: Consistent animation timing across all skeleton components
+- **Performance**: Use CSS transforms and opacity for optimal performance
+
+**Implementation Patterns:**
+- **Conditional Rendering**: `{loading ? <SkeletonComponent /> : <ActualComponent />}`
+- **Progressive Loading**: Show skeletons for different content types as they load
+- **List Variations**: Use varied skeleton sizes for realistic list appearance
+- **Error Fallbacks**: Combine skeleton states with error handling
+
+**Progressive Loading**: Load critical content first
+**Timeout Handling**: Clear feedback when operations take too long
+**Cancellation**: Allow users to cancel long operations
 
 ---
 

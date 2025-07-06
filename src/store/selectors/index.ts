@@ -7,4 +7,10 @@
 export * from './authSelectors'
 
 // UI selectors  
-export * from './uiSelectors' 
+export * from './uiSelectors'
+
+// Posts selectors
+export * from './postsSelectors'
+
+// Profile selectors
+export * from './profilesSelectors' 

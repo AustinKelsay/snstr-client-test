@@ -4,6 +4,7 @@
  */
 
 import React, { forwardRef } from 'react';
+import { cn } from '@/utils/cn';
 
 export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
   /** Input label */
@@ -15,7 +16,7 @@ export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElem
   /** Size variant */
   size?: 'sm' | 'md' | 'lg';
   /** Visual variant */
-  variant?: 'default' | 'ghost';
+  variant?: 'default' | 'ghost' | 'technical';
   /** Whether input is in loading state */
   loading?: boolean;
   /** Left icon */
@@ -45,33 +46,58 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(({
   const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
 
   const sizeClasses = {
-    sm: 'px-3 py-2 text-sm',
-    md: 'px-4 py-3 text-base',
-    lg: 'px-5 py-4 text-lg'
+    sm: 'h-input-sm px-3 text-sm',
+    md: 'h-input-md px-4 text-base',
+    lg: 'h-input-lg px-5 text-lg'
   };
 
   const getInputClasses = () => {
     const baseClasses = `
-      w-full rounded-lg border transition-all duration-200
-      bg-[var(--bg-tertiary)] text-[var(--text-primary)]
-      placeholder:text-[var(--text-tertiary)]
-      focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-opacity-50
-      disabled:opacity-50 disabled:cursor-not-allowed
-      ${sizeClasses[size]}
+      w-full rounded-sm border transition-all duration-200 ease-in-out
+      bg-bg-tertiary text-text-primary font-sans
+      placeholder:text-text-tertiary placeholder:font-mono placeholder:text-xs
+      focus:outline-none focus:ring-2 focus:ring-accent-primary focus:ring-opacity-30
+      focus:border-accent-primary focus:bg-bg-secondary
+      disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-bg-quaternary
       ${leftIcon ? 'pl-10' : ''}
       ${rightIcon || loading ? 'pr-10' : ''}
-      ${className}
     `;
 
     if (error) {
-      return `${baseClasses} border-[var(--error)] focus:border-[var(--error)] focus:ring-[var(--error)]`;
+      return cn(
+        baseClasses,
+        sizeClasses[size],
+        'border-error focus:border-error focus:ring-error shadow-glow-red/20',
+        className
+      );
     }
 
     if (variant === 'ghost') {
-      return `${baseClasses} border-transparent bg-transparent hover:bg-[var(--bg-hover)] focus:bg-[var(--bg-tertiary)]`;
+      return cn(
+        baseClasses,
+        sizeClasses[size],
+        'border-transparent bg-transparent hover:bg-bg-hover focus:bg-bg-tertiary focus:border-border-secondary',
+        className
+      );
     }
 
-    return `${baseClasses} border-[var(--border-primary)] hover:border-[var(--border-secondary)] focus:border-[var(--accent-primary)]`;
+    if (variant === 'technical') {
+      return cn(
+        baseClasses,
+        sizeClasses[size],
+        'border-border-primary hover:border-accent-primary bg-bg-primary font-mono text-xs tracking-wide',
+        'focus:shadow-glow-green/20 focus:bg-bg-secondary',
+        className
+      );
+    }
+
+    return cn(
+      baseClasses,
+      sizeClasses[size],
+      'border-border-primary hover:border-border-secondary hover:bg-bg-secondary',
+      'focus:shadow-glow-green/10',
+      className
+    );
   };
 
   return (
@@ -80,7 +106,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(({
       {label && (
         <label 
           htmlFor={inputId}
-          className="block text-sm font-medium text-[var(--text-primary)] mb-2"
+          className="block text-sm font-medium text-text-primary mb-2 font-mono tracking-wide"
         >
           {label}
         </label>
@@ -90,7 +116,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(({
       <div className="relative">
         {/* Left Icon */}
         {leftIcon && (
-          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--text-tertiary)]">
+          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-tertiary pointer-events-none">
             {leftIcon}
           </div>
         )}
@@ -106,11 +132,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(({
 
         {/* Right Icon / Loading */}
         {(rightIcon || loading) && (
-          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[var(--text-tertiary)]">
+          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-text-tertiary pointer-events-none">
             {loading ? (
-              <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 12a9 9 0 11-6.219-8.56"/>
-              </svg>
+              <div className="w-4 h-4 border-2 border-accent-primary border-t-transparent rounded-full animate-spin" />
             ) : (
               rightIcon
             )}
@@ -120,9 +144,17 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(({
 
       {/* Helper Text / Error */}
       {(error || helperText) && (
-        <p className={`mt-2 text-sm ${error ? 'text-[var(--error)]' : 'text-[var(--text-secondary)]'}`}>
+        <div className="mt-2 flex items-start gap-1">
+          {error && (
+            <span className="text-error text-xs">▲</span>
+          )}
+          <p className={cn(
+            'text-xs font-mono tracking-wide',
+            error ? 'text-error' : 'text-text-secondary'
+          )}>
           {error || helperText}
         </p>
+        </div>
       )}
     </div>
   );

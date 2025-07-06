@@ -455,7 +455,7 @@
     animation: spin var(--transition-lazy) linear infinite;
   }
 
-  .skeleton {
+  .skeleton-base {
     background: linear-gradient(
       90deg,
       var(--bg-tertiary) 25%,
@@ -465,6 +465,25 @@
     background-size: 200% 100%;
     animation: loading 1.5s infinite;
     border-radius: 4px;
+  }
+
+  .skeleton-text {
+    height: 1rem;
+    margin-bottom: var(--space-2);
+  }
+
+  .skeleton-avatar {
+    border-radius: 50%;
+  }
+
+  .skeleton-button {
+    border-radius: 6px;
+    height: var(--size-button-md);
+  }
+
+  .skeleton-card {
+    border-radius: 8px;
+    padding: var(--space-4);
   }
 
   /* ===== INTERACTIVE STATES ===== */
@@ -568,5 +587,46 @@
     0% { transform: scale(1); }
     50% { transform: scale(0.95); }
     100% { transform: scale(1); }
+  }
+
+  /* ===== ENHANCED BUTTON UTILITIES ===== */
+  .btn-glow-green {
+    box-shadow: var(--glow-green);
+  }
+
+  .btn-glow-red {
+    box-shadow: var(--glow-red);
+  }
+
+  .btn-hover-lift:hover {
+    transform: translateY(-2px);
+  }
+
+  .btn-click-scale:active {
+    transform: scale(0.98);
+  }
+
+  /* ===== SETTINGS SPECIFIC STYLES ===== */
+  .settings-nav-active {
+    background: var(--accent-primary);
+    color: black;
+    border: var(--border-thin) solid var(--accent-primary);
+    box-shadow: var(--glow-green);
+    transform: scale(1.02);
+  }
+
+  .settings-nav-inactive {
+    background: transparent;
+    color: var(--text-secondary);
+    border: var(--border-thin) solid transparent;
+    transition: all var(--transition-normal) var(--ease-in-out);
+  }
+
+  .settings-nav-inactive:hover {
+    background: var(--bg-hover);
+    color: var(--accent-primary);
+    border-color: var(--border-primary);
+    box-shadow: var(--shadow-sm);
+    transform: scale(1.01);
   }
 }

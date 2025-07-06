@@ -443,9 +443,13 @@ This document defines the complete visual theme system for the snstr-client-test
 ```
 
 ### Loading States
+
+#### Skeleton Loading System
+The skeleton loading system integrates seamlessly with the cypherpunk theme, providing sophisticated loading animations that maintain visual consistency while indicating content is loading.
+
 ```css
-/* Skeleton Loading */
-.skeleton {
+/* Base Skeleton Animation */
+.skeleton-base {
   background: linear-gradient(
     90deg,
     var(--bg-tertiary) 25%,
@@ -454,8 +458,60 @@ This document defines the complete visual theme system for the snstr-client-test
   );
   background-size: 200% 100%;
   animation: loading 1.5s infinite;
+  border-radius: 4px;
 }
 
+/* Skeleton Variants */
+.skeleton-text {
+  height: 1rem;
+  margin-bottom: var(--space-2);
+}
+
+.skeleton-avatar {
+  border-radius: 50%;
+}
+
+.skeleton-button {
+  border-radius: 6px;
+  height: var(--size-button-md);
+}
+
+.skeleton-card {
+  border-radius: 8px;
+  padding: var(--space-4);
+}
+
+/* Enhanced Skeleton with Cypherpunk Accents */
+.skeleton-enhanced {
+  background: linear-gradient(
+    90deg,
+    var(--bg-tertiary) 20%,
+    var(--bg-hover) 40%,
+    rgba(0, 255, 65, 0.05) 50%,
+    var(--bg-hover) 60%,
+    var(--bg-tertiary) 80%
+  );
+  background-size: 200% 100%;
+  animation: skeletonEnhanced 2s infinite;
+}
+
+@keyframes skeletonEnhanced {
+  0% { background-position: 200% 0; }
+  50% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Reduced Motion Skeleton */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-base,
+  .skeleton-enhanced {
+    animation: none;
+    background: var(--bg-tertiary);
+    opacity: 0.8;
+  }
+}
+
+/* Loading Animation Keyframes */
 @keyframes loading {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
@@ -467,6 +523,58 @@ This document defines the complete visual theme system for the snstr-client-test
   border-top: 2px solid var(--accent-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
+}
+
+/* Skeleton Performance Optimizations */
+.skeleton-base,
+.skeleton-enhanced {
+  will-change: background-position;
+  transform: translateZ(0); /* Force GPU acceleration */
+}
+```
+
+#### Skeleton Theme Integration
+
+**Color Harmony:**
+- **Primary Gradient**: Uses `var(--bg-tertiary)` to `var(--bg-hover)` for consistent dark theme integration
+- **Accent Integration**: Subtle matrix green hints for enhanced variants
+- **Contrast Compliance**: Maintains proper contrast ratios for accessibility
+- **Theme Adaptability**: Automatically adapts to theme variable changes
+
+**Animation Philosophy:**
+- **Smooth Transitions**: 1.5s duration for relaxed, non-distracting loading
+- **Subtle Movement**: Horizontal gradient sweep that doesn't overpower content
+- **Performance Focused**: GPU-accelerated animations for 60fps performance
+- **Accessibility Aware**: Respects `prefers-reduced-motion` user preferences
+
+**Component-Specific Styling:**
+```css
+/* Post Card Skeleton Theme */
+.post-card-skeleton {
+  background: var(--bg-secondary);
+  border: var(--border-thin) solid var(--border-primary);
+  border-radius: 0; /* Sharp edges for technical aesthetic */
+  padding: var(--space-4);
+}
+
+/* Profile Card Skeleton Theme */
+.profile-card-skeleton {
+  background: var(--bg-secondary);
+  border: var(--border-thin) solid var(--border-primary);
+  border-radius: 8px;
+  padding: var(--space-4);
+}
+
+/* Message Skeleton Theme */
+.message-skeleton {
+  background: var(--bg-tertiary);
+  border-radius: 12px;
+  padding: var(--space-3) var(--space-4);
+}
+
+.message-skeleton.own {
+  background: rgba(0, 255, 65, 0.1);
+  margin-left: auto;
 }
 ```
 
@@ -621,6 +729,10 @@ const statusColor = getStatusColor('connected'); // Returns success green
 // Access theme colors programmatically
 const accentColor = THEME_COLORS.accent.primary;
 
+// Get skeleton styles for consistent loading states
+const skeletonClasses = getSkeletonClasses('base', 'md');
+const enhancedSkeletonClasses = getSkeletonClasses('enhanced', 'lg');
+
 // Validate theme system is loaded
 if (isThemeLoaded()) {
   console.log('Matrix green theme loaded successfully');
@@ -641,6 +753,10 @@ import { THEME_STYLES } from '@/utils/theme';
 
 // Glow effects for enhanced visual feedback
 <div style={THEME_STYLES.glowEffects.green} />
+
+// Skeleton loading states with theme integration
+<div style={THEME_STYLES.skeleton.base} />
+<div style={THEME_STYLES.skeleton.enhanced} />
 ```
 
 ### Runtime Theme Customization
@@ -659,4 +775,15 @@ const currentAccent = getCSSVariable('--accent-primary');
 
 ## Summary
 
-This theme system provides a comprehensive foundation for maintaining visual consistency throughout the application while supporting the **matrix green cypherpunk aesthetic** that aligns with the Nostr protocol's values of privacy, decentralization, and technical excellence. 
+This theme system provides a comprehensive foundation for maintaining visual consistency throughout the application while supporting the **matrix green cypherpunk aesthetic** that aligns with the Nostr protocol's values of privacy, decentralization, and technical excellence.
+
+### Key Theme Components
+- **Color System**: Matrix green accents with sophisticated dark backgrounds
+- **Typography**: Inter and JetBrains Mono for technical precision
+- **Component Themes**: Consistent styling for buttons, cards, and forms
+- **Animation Framework**: Smooth transitions with performance optimization
+- **Skeleton Loading System**: High-quality loading states with cypherpunk aesthetic
+- **Accessibility Support**: Full WCAG compliance with reduced motion preferences
+- **Developer Utilities**: Programmatic access to theme values and helper functions
+
+The skeleton loading system is particularly noteworthy as it maintains the application's visual identity during loading states, ensuring users experience consistent design quality throughout their interaction with the application. 

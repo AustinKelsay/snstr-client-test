@@ -5,11 +5,13 @@
  */
 
 import { useState } from 'react'
-import { Menu, X, Zap } from 'lucide-react'
+import { Menu, X, Zap, LogOut } from 'lucide-react'
 import { cn } from '@/utils/cn'
-import { useAppSelector } from '@/store'
-import { selectExtensionStatus } from '@/store/selectors/authSelectors'
+import { useAuth } from '@/features/auth'
 import { Link } from 'react-router-dom'
+import { pubkeyToNpub, formatNip19ForDisplay } from '@/utils/nip19'
+import { SkeletonName, SkeletonUsername } from '@/components/common/MicroSkeletons'
+import { CopyButton } from '@/components/common/CopyButton'
 
 interface HeaderProps {
   className?: string
@@ -18,8 +20,61 @@ interface HeaderProps {
 function Header({ className }: HeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
-  // Get extension status from Redux
-  const extensionStatus = useAppSelector(selectExtensionStatus)
+  // Get auth state and actions
+  const { 
+    isAuthenticated,
+    user,
+    extensionStatus,
+    isLoading,
+    error,
+    login,
+    logout,
+    canAuthenticate,
+    clearError
+  } = useAuth()
+
+  // Handle connect extension click
+  const handleConnectExtension = async () => {
+    try {
+      if (error) clearError()
+      await login()
+    } catch (err) {
+      console.error('Login failed:', err)
+    }
+  }
+
+  // Handle logout click
+  const handleLogout = () => {
+    logout()
+  }
+
+  // Get the best available username for display
+  const getDisplayUsername = () => {
+    if (!user) return 'User'
+    
+    // Priority: display_name > name > truncated pubkey
+    if (user.display_name && !user.display_name.startsWith('user_')) {
+      return user.display_name
+    }
+    if (user.name && !user.name.startsWith('user_')) {
+      return user.name
+    }
+    // If only auto-generated name available, show truncated pubkey
+    return user.pubkey.slice(0, 8) + '...'
+  }
+
+  // Get user's npub for display and copying
+  const getUserNpub = () => {
+    if (!user?.pubkey) return null
+    return pubkeyToNpub(user.pubkey)
+  }
+
+  // Get formatted npub for display
+  const getDisplayNpub = () => {
+    const npub = getUserNpub()
+    if (!npub) return null
+    return formatNip19ForDisplay(npub, { startChars: 8, endChars: 4, showPrefix: false })
+  }
 
   return (
     <div 
@@ -29,7 +84,7 @@ function Header({ className }: HeaderProps) {
         backgroundColor: 'var(--surface-primary)',
       }}
     >
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="container-padding">
         <div className="flex items-center justify-between h-16">
           {/* Logo and branding */}
           <div className="flex items-center gap-3">
@@ -77,7 +132,7 @@ function Header({ className }: HeaderProps) {
             </Link>
           </nav>
 
-          {/* Connection status indicator */}
+          {/* Connection status and auth */}
           <div className="hidden md:flex items-center gap-4">
             <div className="flex items-center gap-2">
               {/* Extension detection indicator - dynamic */}
@@ -97,16 +152,75 @@ function Header({ className }: HeaderProps) {
                 className="text-sm"
                 style={{ color: 'var(--text-secondary)' }}
               >
-                {extensionStatus.available
-                  ? extensionStatus.hasBasicSupport
-                    ? 'Extension Ready'
-                    : 'Extension Detected (Limited)'
-                  : 'Extension Not Detected'}
+{isLoading && isAuthenticated
+                  ? (
+                      <div className="flex items-center gap-2">
+                        <span>Connected: </span>
+                        <SkeletonName variant="short" className="inline-block" />
+                        <SkeletonUsername className="inline-block" />
+                      </div>
+                    )
+                  : isAuthenticated
+                  ? (
+                      <div className="flex items-center gap-2">
+                        <span>Connected: {getDisplayUsername()}</span>
+                        {user && (
+                          <CopyButton
+                            text={getUserNpub()!}
+                            displayText={getDisplayNpub()!}
+                            variant="ghost"
+                            size="sm"
+                            formatNip19={false}
+                            className="font-mono text-xs opacity-60 hover:opacity-100 transition-opacity"
+                          />
+                        )}
+                      </div>
+                    )
+                  : extensionStatus.available
+                    ? extensionStatus.hasBasicSupport
+                      ? 'Extension Ready'
+                      : 'Extension Detected (Limited)'
+                    : 'Extension Not Detected'}
               </span>
             </div>
-            <button className="btn-base btn-secondary btn-sm">
-              Connect Wallet
-            </button>
+            
+            {/* Auth button */}
+            {isAuthenticated ? (
+              <button 
+                onClick={handleLogout}
+                className="btn-base btn-secondary btn-sm flex items-center gap-2"
+                disabled={isLoading}
+              >
+                <LogOut className="w-4 h-4" />
+                Logout
+              </button>
+            ) : (
+              <button 
+                onClick={handleConnectExtension}
+                className="btn-base btn-secondary btn-sm"
+                disabled={isLoading || !canAuthenticate}
+                title={
+                  !extensionStatus.available 
+                    ? 'Please install a Nostr extension (Alby, nos2x, Flamingo)'
+                    : !extensionStatus.hasBasicSupport
+                    ? 'Extension does not support required features'
+                    : 'Connect your Nostr extension'
+                }
+              >
+                {isLoading ? 'Connecting...' : 'Connect Extension'}
+              </button>
+            )}
+            
+            {/* Error display */}
+            {error && (
+              <div 
+                className="text-xs max-w-xs truncate"
+                style={{ color: 'var(--error)' }}
+                title={error}
+              >
+                {error}
+              </div>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -138,6 +252,7 @@ function Header({ className }: HeaderProps) {
                 to="/timeline"
                 className="py-2 transition-colors hover:text-glow"
                 style={{ color: 'var(--text-primary)' }}
+                onClick={() => setMobileMenuOpen(false)}
               >
                 Timeline
               </Link>
@@ -145,6 +260,7 @@ function Header({ className }: HeaderProps) {
                 to="/profile"
                 className="py-2 transition-colors hover:text-glow"
                 style={{ color: 'var(--text-primary)' }}
+                onClick={() => setMobileMenuOpen(false)}
               >
                 Profile
               </Link>
@@ -152,6 +268,7 @@ function Header({ className }: HeaderProps) {
                 to="/messages"
                 className="py-2 transition-colors hover:text-glow"
                 style={{ color: 'var(--text-primary)' }}
+                onClick={() => setMobileMenuOpen(false)}
               >
                 Messages
               </Link>
@@ -159,28 +276,89 @@ function Header({ className }: HeaderProps) {
                 to="/settings"
                 className="py-2 transition-colors hover:text-glow"
                 style={{ color: 'var(--text-primary)' }}
+                onClick={() => setMobileMenuOpen(false)}
               >
                 Settings
               </Link>
-              <div 
-                className="pt-4 border-t"
-                style={{ borderColor: 'var(--border-primary)' }}
-              >
-                <div className="flex items-center gap-2 mb-3">
+              
+              {/* Mobile auth section */}
+              <div className="pt-4 border-t" style={{ borderColor: 'var(--border-primary)' }}>
+                <div className="flex items-center gap-2 mb-4">
                   <div 
-                    className="w-3 h-3 rounded-full animate-pulse"
-                    style={{ backgroundColor: 'var(--text-tertiary)' }}
+                    className={
+                      extensionStatus.available
+                        ? 'w-3 h-3 rounded-full animate-pulse'
+                        : 'w-3 h-3 rounded-full'
+                    }
+                    style={{
+                      backgroundColor: extensionStatus.available 
+                        ? 'var(--accent-primary)' 
+                        : 'var(--text-tertiary)'
+                    }}
                   />
                   <span 
                     className="text-sm"
                     style={{ color: 'var(--text-secondary)' }}
                   >
-                    Extension Detection
+{isLoading && isAuthenticated
+                      ? (
+                          <div className="flex items-center gap-2">
+                            <span>Connected: </span>
+                            <SkeletonName variant="short" className="inline-block" />
+                            <SkeletonUsername className="inline-block" />
+                          </div>
+                        )
+                      : isAuthenticated
+                      ? (
+                          <div className="flex items-center gap-2">
+                            <span>Connected: {getDisplayUsername()}</span>
+                            {user && (
+                              <CopyButton
+                                text={getUserNpub()!}
+                                displayText={getDisplayNpub()!}
+                                variant="ghost"
+                                size="sm"
+                                formatNip19={false}
+                                className="font-mono text-xs opacity-60 hover:opacity-100 transition-opacity"
+                              />
+                            )}
+                          </div>
+                        )
+                      : extensionStatus.available
+                        ? extensionStatus.hasBasicSupport
+                          ? 'Extension Ready'
+                          : 'Extension Detected (Limited)'
+                        : 'Extension Not Detected'}
                   </span>
                 </div>
-                <button className="btn-base btn-secondary btn-sm w-full">
-                  Connect Wallet
-                </button>
+                
+                {isAuthenticated ? (
+                  <button 
+                    onClick={handleLogout}
+                    className="btn-base btn-secondary btn-sm flex items-center gap-2 w-full justify-center"
+                    disabled={isLoading}
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Logout
+                  </button>
+                ) : (
+                  <button 
+                    onClick={handleConnectExtension}
+                    className="btn-base btn-secondary btn-sm w-full"
+                    disabled={isLoading || !canAuthenticate}
+                  >
+                    {isLoading ? 'Connecting...' : 'Connect Extension'}
+                  </button>
+                )}
+                
+                {error && (
+                  <div 
+                    className="text-xs mt-2"
+                    style={{ color: 'var(--error)' }}
+                  >
+                    {error}
+                  </div>
+                )}
               </div>
             </nav>
           </div>
