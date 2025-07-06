@@ -4,7 +4,7 @@
  */
 
 
-import { useLocation } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 import Logo from '@/components/common/Logo';
 import StatusIndicator from '@/components/common/StatusIndicator';
 
@@ -112,8 +112,8 @@ export function Sidebar({ collapsed = false, onToggle, className = '' }: Sidebar
             
             return (
               <li key={item.path}>
-                <a
-                  href={item.path}
+                <Link
+                  to={item.path}
                   className={`
                     flex items-center gap-3 p-3 rounded-lg transition-all duration-200
                     ${isActive 
@@ -126,7 +126,7 @@ export function Sidebar({ collapsed = false, onToggle, className = '' }: Sidebar
                   {!collapsed && (
                     <span className="font-medium">{item.label}</span>
                   )}
-                </a>
+                </Link>
               </li>
             );
           })}

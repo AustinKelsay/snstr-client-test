@@ -4,7 +4,7 @@
  */
 
 
-import { useLocation } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 
 export interface MobileNavigationProps {
   /** Additional CSS classes */
@@ -80,9 +80,9 @@ export function MobileNavigation({ className = '' }: MobileNavigationProps) {
           const isActive = location.pathname === item.path;
           
           return (
-            <a
+            <Link
               key={item.path}
-              href={item.path}
+              to={item.path}
               className={`
                 flex flex-col items-center justify-center p-3 rounded-lg transition-all duration-200
                 min-w-[60px] min-h-[60px]
@@ -104,7 +104,7 @@ export function MobileNavigation({ className = '' }: MobileNavigationProps) {
                   style={{ backgroundColor: 'var(--accent-primary)' }}
                 />
               )}
-            </a>
+            </Link>
           );
         })}
       </div>
