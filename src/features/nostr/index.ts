@@ -4,8 +4,8 @@
  * client management, event handling, relay management, and utilities
  */
 
-// Main client and types (when snstr is available, we'll uncomment these)
-// export { NostrClient, nostrClient, RelayEvent } from './nostrClient'
+// Main client and types
+export { NostrClient, nostrClient, RelayEvent } from './nostrClient'
 
 // Event handling and processing
 export {

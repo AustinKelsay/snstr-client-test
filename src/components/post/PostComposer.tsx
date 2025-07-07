@@ -98,12 +98,19 @@ export function PostComposer({
     }
   }, [content, error])
 
-  // Auto-expand when user starts typing
+  // Auto-expand when user starts typing or focuses the textarea
   useEffect(() => {
     if (compact && content.trim().length > 0 && !isExpanded) {
       setIsExpanded(true)
     }
   }, [compact, content, isExpanded])
+
+  // Handle textarea focus - expand when user clicks into it
+  const handleTextareaFocus = useCallback(() => {
+    if (compact && !isExpanded) {
+      setIsExpanded(true)
+    }
+  }, [compact, isExpanded])
 
   // Fetch user profile when connected
   useEffect(() => {
@@ -384,7 +391,7 @@ export function PostComposer({
       {/* Main composer area */}
       <div className={cn(
         'relative transition-all duration-300 ease-in-out',
-        isExpanded ? 'opacity-100 max-h-[800px]' : 'opacity-70 max-h-[120px] overflow-hidden'
+        isExpanded ? 'opacity-100 max-h-[800px]' : 'opacity-70 max-h-[200px] overflow-hidden'
       )}>
         <div className="p-6 space-y-4">
           {/* Textarea */}
@@ -394,10 +401,12 @@ export function PostComposer({
               value={content}
               onChange={handleContentChange}
               onKeyDown={handleKeyDown}
+              onFocus={handleTextareaFocus}
               placeholder={placeholder}
               maxLength={maxLength}
               className={cn(
-                'min-h-[120px] resize-none border-none bg-transparent p-0',
+                compact && !isExpanded ? 'min-h-[80px]' : 'min-h-[120px]',
+                'resize-none border-none bg-transparent p-0',
                 'text-text-primary placeholder:text-text-tertiary text-lg leading-relaxed',
                 'focus:ring-0 focus:outline-none transition-all duration-300',
                 showTechnical && 'font-mono text-base',

@@ -65,7 +65,13 @@ export function isValidSignature(signature: string): boolean {
 }
 
 /**
- * Validates a relay URL format
+ * Validates a relay URL format with enhanced security checks
+ * TODO: Replace with SNSTR's built-in isValidRelayUrl when available
+ * 
+ * This implements similar security validations as described in SNSTR documentation:
+ * - Protocol validation (ws:// or wss://)
+ * - Credential rejection (no username/password in URL)  
+ * - Basic structure validation
  */
 export function isValidRelayUrl(url: string): boolean {
   if (!url || typeof url !== 'string') {
@@ -74,7 +80,33 @@ export function isValidRelayUrl(url: string): boolean {
   
   try {
     const parsed = new URL(url)
-    return parsed.protocol === 'ws:' || parsed.protocol === 'wss:'
+    
+    // Must be WebSocket protocol
+    if (parsed.protocol !== 'ws:' && parsed.protocol !== 'wss:') {
+      return false
+    }
+    
+    // Must have a host
+    if (!parsed.hostname) {
+      return false
+    }
+    
+    // Reject URLs with embedded credentials (security risk)
+    if (parsed.username || parsed.password) {
+      return false
+    }
+    
+    // URL length limit for security
+    if (url.length > 512) {
+      return false
+    }
+    
+    // No fragments or search parameters typically expected
+    if (parsed.hash || parsed.search) {
+      return false
+    }
+    
+    return true
   } catch {
     return false
   }

@@ -492,4 +492,7 @@ export class RelayManager {
 }
 
 // Export singleton instance
-export const relayManager = new RelayManager() 
+export const relayManager = new RelayManager()
+
+// Export types for external use
+export type { RelayConfig, RelayStatus, RelayHealth } from './types' 

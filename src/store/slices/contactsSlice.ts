@@ -6,6 +6,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import { nostrClient } from '@/features/nostr/nostrClient'
 import type { NostrEvent, Filter } from 'snstr'
+import { isValidRelayUrl } from '@/utils/nostr'
 import '@/types/auth' // Import to extend Window interface with nostr property
 
 // Contact interface based on NIP-02 spec
@@ -228,7 +229,7 @@ function parseContactsFromEvent(event: NostrEvent): Contact[] {
 
         const contact: Contact = {
           pubkey: tag[1],
-          relayUrl: tag[2] && (tag[2].startsWith('ws://') || tag[2].startsWith('wss://')) ? tag[2] : undefined,
+          relayUrl: tag[2] && isValidRelayUrl(tag[2]) ? tag[2] : undefined,
           petname: tag[3] || undefined
         }
 

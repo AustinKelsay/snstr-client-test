@@ -11,6 +11,18 @@ import {
   encodeEvent,
   decode
 } from 'snstr'
+
+// Note: These security functions should be available in newer versions of SNSTR
+// TODO: Uncomment when SNSTR library is updated with security functions
+// import { 
+//   filterProfile,
+//   filterEvent,
+//   filterAddress, 
+//   filterEntity,
+//   isValidRelayUrl
+// } from 'snstr'
+
+// Temporary: Use local relay validation until SNSTR security functions are available
 import { isValidRelayUrl } from './nostr'
 
 /**
@@ -293,17 +305,135 @@ export function safeEncodeEvent(
 
 
 /**
- * Safely decodes any NIP-19 entity
+ * Safely decodes any NIP-19 entity with security filtering
+ * Following the recommended safe decoding pattern from SNSTR documentation
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function safeDecodeEntity(entity: string): any {
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return decode(entity as any)
+    const result = decode(entity as any)
+    
+    // Simple types don't need filtering (npub, nsec, note)
+    if (['npub', 'nsec', 'note'].includes(result.type)) {
+      return result
+    }
+    
+    // Complex types need security filtering to remove malicious relay URLs
+    if (['nprofile', 'nevent', 'naddr'].includes(result.type)) {
+      return {
+        ...result,
+        data: filterDecodedEntity(result.data, result.type)
+      }
+    }
+    
+    return result
   } catch (error) {
     console.warn('Failed to decode NIP-19 entity:', entity, error)
     return null
   }
+}
+
+/**
+ * Temporary security filtering function until SNSTR built-in functions are available
+ * This implements the same security filtering that should be available in SNSTR
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function filterDecodedEntity(data: any, type: string): any {
+  if (!data || typeof data !== 'object') {
+    return data
+  }
+
+  // Create a copy to avoid mutating original data
+  const filtered = { ...data }
+
+  // Filter relay URLs if present
+  if (data.relays && Array.isArray(data.relays)) {
+    filtered.relays = data.relays.filter((url: string) => {
+      if (typeof url !== 'string') return false
+      return isValidRelayUrl(url)
+    })
+    
+    // Remove empty relays array
+    if (filtered.relays.length === 0) {
+      delete filtered.relays
+    }
+  }
+
+  // Additional validation based on entity type
+  switch (type) {
+    case 'nprofile':
+      return filterProfileData(filtered)
+    case 'nevent':
+      return filterEventData(filtered)
+    case 'naddr':
+      return filterAddressData(filtered)
+    default:
+      return filtered
+  }
+}
+
+/**
+ * Temporary profile data filtering (will be replaced by SNSTR's filterProfile)
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function filterProfileData(data: any): any {
+  const filtered = { ...data }
+  
+  // Validate pubkey
+  if (!data.pubkey || typeof data.pubkey !== 'string' || !/^[0-9a-f]{64}$/i.test(data.pubkey)) {
+    throw new Error('Invalid pubkey in profile')
+  }
+  
+  return filtered
+}
+
+/**
+ * Temporary event data filtering (will be replaced by SNSTR's filterEvent)
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function filterEventData(data: any): any {
+  const filtered = { ...data }
+  
+  // Validate event ID
+  if (!data.id || typeof data.id !== 'string' || !/^[0-9a-f]{64}$/i.test(data.id)) {
+    throw new Error('Invalid event ID')
+  }
+  
+  // Validate author if present
+  if (data.author && (typeof data.author !== 'string' || !/^[0-9a-f]{64}$/i.test(data.author))) {
+    throw new Error('Invalid author pubkey')
+  }
+  
+  // Validate kind if present
+  if (data.kind !== undefined && (typeof data.kind !== 'number' || data.kind < 0)) {
+    throw new Error('Invalid event kind')
+  }
+  
+  return filtered
+}
+
+/**
+ * Temporary address data filtering (will be replaced by SNSTR's filterAddress)
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function filterAddressData(data: any): any {
+  const filtered = { ...data }
+  
+  // Validate required fields
+  if (!data.identifier || typeof data.identifier !== 'string') {
+    throw new Error('Invalid identifier')
+  }
+  
+  if (!data.pubkey || typeof data.pubkey !== 'string' || !/^[0-9a-f]{64}$/i.test(data.pubkey)) {
+    throw new Error('Invalid pubkey')
+  }
+  
+  if (typeof data.kind !== 'number' || data.kind < 0) {
+    throw new Error('Invalid kind')
+  }
+  
+  return filtered
 }
 
 /**

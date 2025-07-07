@@ -20,10 +20,11 @@ import {
   selectAuthLoading,
   selectAuthError
 } from '@/store/selectors/authSelectors'
+import { nostrClient } from '@/features/nostr/nostrClient'
 
 /**
  * Custom hook for managing authentication state and actions
- * Automatically initializes extension detection on mount
+ * Automatically initializes extension detection and NostrClient connections on mount
  */
 export default function useAuth() {
   const dispatch = useAppDispatch()
@@ -36,9 +37,24 @@ export default function useAuth() {
   const isLoading = useAppSelector(selectAuthLoading)
   const error = useAppSelector(selectAuthError)
 
-  // Initialize auth on component mount
+  // Initialize auth and NostrClient on component mount
   useEffect(() => {
-    dispatch(initializeAuth())
+    const initialize = async () => {
+      // Initialize auth (extension detection)
+      dispatch(initializeAuth())
+      
+      // Initialize NostrClient connections
+      try {
+        console.log('🚀 Initializing NostrClient connections...')
+        await nostrClient.connectToRelays()
+        console.log('✅ NostrClient connections initialized')
+      } catch (error) {
+        console.error('❌ Failed to initialize NostrClient connections:', error)
+        // Don't throw error to prevent app from breaking if relays are down
+      }
+    }
+    
+    initialize()
   }, [dispatch])
 
   // Auth actions

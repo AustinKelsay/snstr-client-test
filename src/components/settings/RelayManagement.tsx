@@ -1,12 +1,14 @@
 /**
  * @fileoverview RelayManagement component for managing Nostr relay connections
  * Provides interface for adding, removing, testing, and configuring relays
- * Connects to the existing RelayManager backend with real-time status updates
+ * Connects to the real NostrClient for persistent connection status tracking
  */
 
 import { memo, useState, useEffect, useCallback } from 'react'
 import { Plus, Trash2, TestTube, Wifi, Clock, CheckCircle, XCircle, WifiOff, Activity, Server, Shield } from 'lucide-react'
-import { relayManager, type RelayConfig, type RelayStatus } from '@/features/nostr/relayManager'
+import { nostrClient } from '@/features/nostr/nostrClient'
+import { relayManager, type RelayConfig } from '@/features/nostr/relayManager'
+import type { RelayStatus } from '@/features/nostr/types'
 import Button from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
@@ -20,6 +22,7 @@ interface RelayManagementProps {
 /**
  * RelayManagement component provides a comprehensive interface for managing Nostr relays
  * Features real-time status monitoring, relay testing, and configuration management
+ * Now uses the actual NostrClient for persistent connection tracking
  */
 export const RelayManagement = memo(function RelayManagement({
   className,
@@ -30,27 +33,59 @@ export const RelayManagement = memo(function RelayManagement({
   const [isAddingRelay, setIsAddingRelay] = useState(false)
   const [testingRelays, setTestingRelays] = useState<Set<string>>(new Set())
 
-  // Load initial relay data
+  // Load initial relay data and connect to real NostrClient status
   useEffect(() => {
     const loadRelayData = () => {
+      // Get relay configs from manager (for UI configuration)
       const relayConfigs = relayManager.getAllRelays()
-      const relayStatuses = new Map<string, RelayStatus>()
       
-      relayConfigs.forEach(config => {
-        const status = relayManager.getRelayStatus(config.url)
-        if (status) {
-          relayStatuses.set(config.url, status)
-        }
+      // Get actual connection status from NostrClient (persistent connections)
+      const nostrStatuses = nostrClient.getRelayStatuses()
+      const statusMap = new Map<string, RelayStatus>()
+      
+      nostrStatuses.forEach(status => {
+        statusMap.set(status.url, status)
       })
       
       setRelays(relayConfigs)
-      setStatuses(relayStatuses)
+      setStatuses(statusMap)
+      
+      // Debug logging to help troubleshoot connection status
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 Relay Status Debug:', {
+          configuredRelays: relayConfigs.length,
+          nostrClientStatuses: nostrStatuses.length,
+          connectedCount: nostrStatuses.filter(s => s.connected).length,
+          connectingCount: nostrStatuses.filter(s => s.connecting).length,
+          statuses: nostrStatuses.map(s => ({
+            url: s.url,
+            connected: s.connected,
+            connecting: s.connecting,
+            error: s.error
+          }))
+        })
+      }
     }
 
     loadRelayData()
 
-    // Set up periodic status updates since relayManager doesn't have events
-    const interval = setInterval(loadRelayData, 5000) // Update every 5 seconds
+    // Set up periodic status updates to get real connection status
+    const interval = setInterval(loadRelayData, 2000) // Update every 2 seconds for better responsiveness
+
+    // Initialize NostrClient connections if not already connected
+    const initializeConnections = async () => {
+      try {
+        const connectedRelays = nostrClient.getConnectedRelays()
+        if (connectedRelays.length === 0) {
+          console.log('🚀 Initializing NostrClient connections...')
+          await nostrClient.connectToRelays()
+        }
+      } catch (error) {
+        console.error('Failed to initialize NostrClient connections:', error)
+      }
+    }
+
+    initializeConnections()
 
     return () => {
       clearInterval(interval)
@@ -70,7 +105,7 @@ export const RelayManagement = memo(function RelayManagement({
         throw new Error('Relay URL must start with ws:// or wss://')
       }
 
-      // Add relay to manager
+      // Add relay to both manager (for config) and NostrClient (for connections)
       const config: RelayConfig = {
         url,
         read: true,
@@ -80,9 +115,7 @@ export const RelayManagement = memo(function RelayManagement({
       }
 
       relayManager.addRelay(config)
-      
-      // Test the new relay
-      await relayManager.testRelay(url)
+      await nostrClient.addRelay(url) // Add to actual client for persistent connections
       
       // Update local state
       setRelays(relayManager.getAllRelays())
@@ -97,23 +130,35 @@ export const RelayManagement = memo(function RelayManagement({
   }, [newRelayUrl, relays.length])
 
   // Remove relay
-  const handleRemoveRelay = useCallback((url: string) => {
-    relayManager.removeRelay(url)
-    setRelays(relayManager.getAllRelays())
-    setStatuses(prev => {
-      const updated = new Map(prev)
-      updated.delete(url)
-      return updated
-    })
+  const handleRemoveRelay = useCallback(async (url: string) => {
+    try {
+      relayManager.removeRelay(url)
+      await nostrClient.removeRelay(url) // Remove from actual client
+      
+      setRelays(relayManager.getAllRelays())
+      setStatuses(prev => {
+        const updated = new Map(prev)
+        updated.delete(url)
+        return updated
+      })
+    } catch (error) {
+      console.error('Failed to remove relay:', error)
+    }
   }, [])
 
-  // Test relay connection
+  // Test relay connection using RelayManager for quick test
   const handleTestRelay = useCallback(async (url: string) => {
     setTestingRelays(prev => new Set(prev).add(url))
     
     try {
+      // Use RelayManager for quick connection test
       await relayManager.testRelay(url)
-      // Status will be updated via event listener
+      
+      // Also trigger NostrClient reconnection if needed
+      const currentStatus = statuses.get(url)
+      if (!currentStatus?.connected) {
+        await nostrClient.connectToRelays()
+      }
     } catch (error) {
       console.error(`Failed to test relay ${url}:`, error)
     } finally {
@@ -123,7 +168,7 @@ export const RelayManagement = memo(function RelayManagement({
         return updated
       })
     }
-  }, [])
+  }, [statuses])
 
   // Toggle relay configuration
   const handleToggleConfig = useCallback((url: string, field: 'read' | 'write' | 'enabled') => {
@@ -133,6 +178,13 @@ export const RelayManagement = memo(function RelayManagement({
     const updates = { [field]: !relay[field] }
     relayManager.updateRelay(url, updates)
     setRelays(relayManager.getAllRelays())
+    
+    // If disabling/enabling relay, reconnect NostrClient
+    if (field === 'enabled') {
+      nostrClient.connectToRelays().catch(error => {
+        console.error('Failed to update NostrClient connections:', error)
+      })
+    }
   }, [relays])
 
   // Get enhanced status indicator
@@ -458,23 +510,44 @@ export const RelayManagement = memo(function RelayManagement({
               <Shield className="w-5 h-5 text-accent-primary" />
               <span className="font-mono text-sm text-text-primary">NETWORK HEALTH</span>
             </div>
-            <div className={cn(
-              'flex items-center gap-2 px-3 py-1 rounded text-xs font-mono',
-              connectedCount >= 3 ? 'bg-success/10 text-success border border-success/30' : 
-              connectedCount >= 1 ? 'bg-warning/10 text-warning border border-warning/30' :
-              'bg-error/10 text-error border border-error/30'
-            )}>
+            <div className="flex items-center gap-3">
               <div className={cn(
-                'w-2 h-2 rounded-full',
-                connectedCount >= 3 ? 'bg-success animate-pulse' : 
-                connectedCount >= 1 ? 'bg-warning animate-pulse' :
-                'bg-error'
-              )} />
-              <span>
-                {connectedCount >= 3 ? 'EXCELLENT' : 
-                 connectedCount >= 1 ? 'ADEQUATE' : 
-                 'DISCONNECTED'}
-              </span>
+                'flex items-center gap-2 px-3 py-1 rounded text-xs font-mono',
+                connectedCount >= 3 ? 'bg-success/10 text-success border border-success/30' : 
+                connectedCount >= 1 ? 'bg-warning/10 text-warning border border-warning/30' :
+                'bg-error/10 text-error border border-error/30'
+              )}>
+                <div className={cn(
+                  'w-2 h-2 rounded-full',
+                  connectedCount >= 3 ? 'bg-success animate-pulse' : 
+                  connectedCount >= 1 ? 'bg-warning animate-pulse' :
+                  'bg-error'
+                )} />
+                <span>
+                  {connectedCount >= 3 ? 'EXCELLENT' : 
+                   connectedCount >= 1 ? 'ADEQUATE' : 
+                   'DISCONNECTED'}
+                </span>
+              </div>
+              
+              {/* Manual connect button for troubleshooting */}
+              {connectedCount === 0 && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={async () => {
+                    try {
+                      console.log('🔄 Manual connection attempt...')
+                      await nostrClient.connectToRelays()
+                    } catch (error) {
+                      console.error('Manual connection failed:', error)
+                    }
+                  }}
+                  className="text-xs font-mono"
+                >
+                  CONNECT NOW
+                </Button>
+              )}
             </div>
           </div>
         </div>
